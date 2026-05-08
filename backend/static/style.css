@@ -1,0 +1,356 @@
+:root {
+    --bg-color: #0f172a;
+    --panel-bg: rgba(30, 41, 59, 0.7);
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --accent-color: #38bdf8;
+    --accent-glow: rgba(56, 189, 248, 0.5);
+    --border-color: rgba(255, 255, 255, 0.1);
+    
+    --organ-brain: #c084fc;
+    --organ-lungs: #38bdf8;
+    --organ-heart: #fb7185;
+    --organ-breast: #f472b6;
+    --organ-blood: #ef4444;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background: radial-gradient(circle at 50% 0%, #1e293b, var(--bg-color));
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.app-container {
+    display: flex;
+    flex-direction: row;
+    width: 95%;
+    max-width: 1200px;
+    height: 90vh;
+    gap: 2rem;
+    padding: 2rem;
+    background: var(--panel-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border-color);
+    border-radius: 24px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+/* LEFT PANEL: Prediction */
+.prediction-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    padding-right: 1rem;
+}
+
+.prediction-panel::-webkit-scrollbar {
+    width: 6px;
+}
+.prediction-panel::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 10px;
+}
+
+header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(to right, #38bdf8, #c084fc);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+header p {
+    color: var(--text-secondary);
+    font-size: 1rem;
+    line-height: 1.5;
+    margin-bottom: 2rem;
+}
+
+.search-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+textarea {
+    width: 100%;
+    height: 120px;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1rem;
+    color: var(--text-primary);
+    font-family: 'Inter', sans-serif;
+    font-size: 1rem;
+    resize: none;
+    transition: all 0.3s ease;
+}
+
+textarea:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 15px var(--accent-glow);
+}
+
+button {
+    background: linear-gradient(135deg, #38bdf8, #2563eb);
+    color: white;
+    border: none;
+    padding: 1rem;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(37, 99, 235, 0.4);
+}
+
+/* RESULTS */
+.hidden {
+    display: none !important;
+}
+
+#loading {
+    text-align: center;
+    padding: 2rem;
+    color: var(--accent-color);
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid rgba(56, 189, 248, 0.2);
+    border-top-color: var(--accent-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.result-card {
+    background: rgba(15, 23, 42, 0.5);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 1.5rem;
+    animation: slideUp 0.5s ease;
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.disease-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.disease-header h3 {
+    font-size: 1.5rem;
+    color: #fbbf24;
+}
+
+.confidence {
+    background: rgba(16, 185, 129, 0.2);
+    color: #34d399;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+.full-width {
+    grid-column: span 2;
+}
+
+.detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.value {
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+.highlight-organ {
+    color: var(--accent-color);
+    font-weight: 700;
+    text-shadow: 0 0 10px var(--accent-glow);
+}
+
+
+/* RIGHT PANEL: Anatomy */
+.anatomy-panel {
+    flex: 0 0 350px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 16px;
+    padding: 2rem;
+    border: 1px solid var(--border-color);
+}
+
+.anatomy-panel h2 {
+    margin-bottom: 1.5rem;
+    font-size: 1.25rem;
+    text-align: center;
+}
+
+.anatomy-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.human-body {
+    height: 400px;
+    filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.05));
+}
+
+.body-outline {
+    fill: rgba(255, 255, 255, 0.05);
+    stroke: rgba(255, 255, 255, 0.2);
+    stroke-width: 2;
+}
+
+.organ {
+    fill: transparent;
+    stroke: transparent;
+    transition: all 0.5s ease;
+    opacity: 0.1;
+}
+
+/* Brain */
+#organ-brain.active {
+    fill: var(--organ-brain);
+    filter: drop-shadow(0 0 15px var(--organ-brain));
+    opacity: 1;
+    animation: pulse 2s infinite;
+}
+
+/* Lungs */
+#organ-lungs.active {
+    fill: var(--organ-lungs);
+    filter: drop-shadow(0 0 15px var(--organ-lungs));
+    opacity: 1;
+    animation: breath 3s infinite ease-in-out;
+}
+
+/* Heart */
+#organ-heart.active {
+    fill: var(--organ-heart);
+    filter: drop-shadow(0 0 15px var(--organ-heart));
+    opacity: 1;
+    animation: heartbeat 1s infinite;
+}
+
+/* Breast */
+#organ-breast.active, #organ-breast-right.active {
+    fill: var(--organ-breast);
+    filter: drop-shadow(0 0 15px var(--organ-breast));
+    opacity: 1;
+    animation: pulse 2s infinite;
+}
+
+/* Blood & Bone Marrow */
+#organ-blood.active, #organ-bone-marrow.active, #organ-bone-marrow-right.active {
+    stroke: var(--organ-blood);
+    filter: drop-shadow(0 0 10px var(--organ-blood));
+    opacity: 1;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); opacity: 0.8; }
+    50% { transform: scale(1.05); opacity: 1; }
+    100% { transform: scale(1); opacity: 0.8; }
+}
+
+@keyframes heartbeat {
+    0% { transform: scale(1); }
+    15% { transform: scale(1.1); }
+    30% { transform: scale(1); }
+    45% { transform: scale(1.1); }
+    60% { transform: scale(1); }
+    100% { transform: scale(1); }
+}
+
+@keyframes breath {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+    100% { transform: scale(1); }
+}
+
+.organ-label-box {
+    margin-top: 2rem;
+    padding: 0.75rem 1.5rem;
+    background: rgba(15, 23, 42, 0.8);
+    border: 1px solid var(--accent-color);
+    border-radius: 8px;
+    box-shadow: 0 0 15px var(--accent-glow);
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+#organLabelText {
+    color: var(--accent-color);
+    text-transform: capitalize;
+}
+
+@media (max-width: 900px) {
+    .app-container {
+        flex-direction: column;
+        height: auto;
+    }
+    .anatomy-panel {
+        flex: none;
+        height: 500px;
+    }
+}

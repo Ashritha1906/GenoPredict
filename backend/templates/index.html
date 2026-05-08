@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bioinformatics Disease Predictor</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar / Prediction Section -->
+        <main class="prediction-panel">
+            <header>
+                <h1>Genomic Disease Predictor</h1>
+                <p>Analyze symptoms and gene mutations to predict genetic diseases and identify affected organs.</p>
+            </header>
+
+            <div class="search-section">
+                <textarea id="symptomsInput" placeholder="Enter symptoms, gene, or mutation (e.g., 'tremor slow movement' or 'thalassemia')..."></textarea>
+                <button id="predictBtn">Analyze & Predict</button>
+            </div>
+
+            <div id="loading" class="hidden">
+                <div class="spinner"></div>
+                <p>Analyzing genomic data...</p>
+            </div>
+
+            <div id="results" class="hidden">
+                <h2>Prediction Results</h2>
+                
+                <div class="result-card">
+                    <div class="disease-header">
+                        <h3 id="diseaseName">Disease Name</h3>
+                        <span class="confidence" id="confidenceScore">99%</span>
+                    </div>
+                    
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <span class="label">Affected Organ</span>
+                            <span class="value highlight-organ" id="affectedOrgan">Brain</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">Related Genes</span>
+                            <span class="value" id="relatedGenes">N/A</span>
+                        </div>
+                        <div class="detail-item full-width">
+                            <span class="label">Mutation Details</span>
+                            <span class="value" id="mutationInfo">N/A</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">Region (India)</span>
+                            <span class="value" id="region">N/A</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">Recovery & Treatment</span>
+                            <span class="value" id="recovery">N/A</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Anatomy Visualization Section -->
+        <aside class="anatomy-panel">
+            <h2>Anatomy Visualization</h2>
+            <div class="anatomy-container">
+                <!-- Simple SVG Human Body Outline -->
+                <svg viewBox="0 0 200 500" class="human-body" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Body Silhouette -->
+                    <path class="body-outline" d="M100 20 C115 20, 125 35, 125 50 C125 65, 115 75, 100 75 C85 75, 75 65, 75 50 C75 35, 85 20, 100 20 Z 
+                             M65 85 C85 80, 115 80, 135 85 C150 90, 160 110, 160 140 L160 220 C160 230, 150 230, 145 220 L135 150 L135 250 L140 450 C140 470, 120 470, 115 450 L105 270 L95 270 L85 450 C80 470, 60 470, 60 450 L65 250 L65 150 L55 220 C50 230, 40 230, 40 220 L40 140 C40 110, 50 90, 65 85 Z" />
+                    
+                    <!-- Organs (Initially hidden or dimmed) -->
+                    <!-- Brain -->
+                    <path id="organ-brain" class="organ" d="M85 40 C85 30, 115 30, 115 40 C115 55, 85 55, 85 40 Z" />
+                    
+                    <!-- Lungs -->
+                    <path id="organ-lungs" class="organ" d="M75 110 C70 130, 85 150, 95 145 C95 130, 85 110, 75 110 Z M125 110 C130 130, 115 150, 105 145 C105 130, 115 110, 125 110 Z" />
+                    
+                    <!-- Heart -->
+                    <path id="organ-heart" class="organ" d="M100 125 C105 120, 115 120, 110 135 C105 145, 95 140, 100 125 Z" />
+                    
+                    <!-- Breast -->
+                    <circle id="organ-breast" class="organ" cx="80" cy="115" r="8" />
+                    <circle id="organ-breast-right" class="organ" cx="120" cy="115" r="8" />
+
+                    <!-- Blood (Represented as a vein system overlay) -->
+                    <path id="organ-blood" class="organ" d="M100 80 L100 250 M100 100 L140 150 M100 100 L60 150 M100 250 L80 400 M100 250 L120 400" stroke-width="3" fill="none" stroke-linecap="round" />
+                    
+                    <!-- Bone Marrow (Overlay on legs/arms) -->
+                    <line id="organ-bone-marrow" class="organ" x1="75" y1="280" x2="70" y2="400" stroke-width="6" stroke-linecap="round" />
+                    <line id="organ-bone-marrow-right" class="organ" x1="125" y1="280" x2="130" y2="400" stroke-width="6" stroke-linecap="round" />
+                </svg>
+
+                <div class="organ-label-box" id="organLabelBox">
+                    Affected System: <strong id="organLabelText">None</strong>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <script>
+        document.getElementById('predictBtn').addEventListener('click', async () => {
+            const symptoms = document.getElementById('symptomsInput').value;
+            if (!symptoms) return alert("Please enter symptoms or gene details.");
+
+            // UI states
+            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('results').classList.add('hidden');
+            resetOrgans();
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ symptoms, limit: 1 })
+                });
+                
+                const data = await response.json();
+                document.getElementById('loading').classList.add('hidden');
+
+                if (data.error || (data.message && !Array.isArray(data))) {
+                    alert(data.error || data.message);
+                    return;
+                }
+
+                if (data.length > 0) {
+                    const match = data[0];
+                    document.getElementById('diseaseName').innerText = match.disease.toUpperCase();
+                    document.getElementById('confidenceScore').innerText = match.confidence_score + "% Match";
+                    document.getElementById('affectedOrgan').innerText = match.affected_organ;
+                    document.getElementById('relatedGenes').innerText = match.related_genes;
+                    document.getElementById('mutationInfo').innerText = match.mutation_info;
+                    document.getElementById('region').innerText = match.prevalence_in_india;
+                    document.getElementById('recovery').innerText = match.recovery_treatment;
+                    
+                    document.getElementById('results').classList.remove('hidden');
+
+                    // Highlight organ
+                    highlightOrgan(match.affected_organ);
+                }
+            } catch (err) {
+                console.error(err);
+                document.getElementById('loading').classList.add('hidden');
+                alert("An error occurred while connecting to the server.");
+            }
+        });
+
+        function resetOrgans() {
+            document.querySelectorAll('.organ').forEach(el => el.classList.remove('active'));
+            document.getElementById('organLabelText').innerText = "None";
+            document.getElementById('organLabelBox').style.opacity = 0;
+        }
+
+        function highlightOrgan(organName) {
+            resetOrgans();
+            const organIdMap = {
+                "brain": ["organ-brain"],
+                "lungs": ["organ-lungs"],
+                "heart": ["organ-heart"],
+                "breast": ["organ-breast", "organ-breast-right"],
+                "blood": ["organ-blood"],
+                "blood / bone marrow": ["organ-blood", "organ-bone-marrow", "organ-bone-marrow-right"]
+            };
+
+            const key = organName.toLowerCase().trim();
+            const ids = organIdMap[key];
+
+            if (ids) {
+                ids.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.classList.add('active');
+                });
+                document.getElementById('organLabelText').innerText = organName;
+                document.getElementById('organLabelBox').style.opacity = 1;
+            }
+        }
+    </script>
+</body>
+</html>
