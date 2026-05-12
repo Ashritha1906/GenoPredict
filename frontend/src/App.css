@@ -2,30 +2,39 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  padding: 2rem;
-  max-width: 1400px;
-  margin: 0 auto;
+  padding: 0;
+  max-width: 100%;
+  margin: 0;
   width: 100%;
 }
 
 .header {
+  background: var(--secondary);
+  border-bottom: 1px solid var(--border);
+  padding: 1rem 2rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 4rem;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: var(--shadow-sm);
 }
 
 .logo {
   display: flex;
   align-items: center;
   gap: 12px;
-  font-size: 1.5rem;
+  font-size: 1.4rem;
   font-weight: 800;
-  color: var(--text);
+  color: var(--accent);
 }
 
-.logo-icon {
-  color: var(--accent);
+main {
+  max-width: 1250px;
+  margin: 0 auto;
+  padding: 3rem 2rem;
+  width: 100%;
 }
 
 .hero {
@@ -34,45 +43,32 @@
 }
 
 .hero h1 {
-  font-size: 3.5rem;
+  font-size: 2.8rem;
   font-weight: 800;
-  margin-bottom: 1rem;
-  background: var(--dna-gradient);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  letter-spacing: -1px;
+  margin-bottom: 0.8rem;
+  color: var(--text);
 }
 
 .hero p {
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   color: var(--text-muted);
-  max-width: 600px;
+  max-width: 800px;
   margin: 0 auto;
 }
 
 .search-container {
-  max-width: 900px;
+  max-width: 800px;
   margin: 0 auto 4rem auto;
-  width: 100%;
 }
 
 .search-box {
   display: flex;
   align-items: center;
-  padding: 0.5rem 1.5rem;
-  border-radius: 20px;
-  transition: all 0.3s ease;
-}
-
-.search-box:focus-within {
-  border-color: var(--accent);
-  box-shadow: 0 0 20px var(--accent-glow);
-}
-
-.search-icon {
-  color: var(--accent);
-  margin-right: 15px;
+  padding: 0.6rem 1.2rem;
+  background: var(--secondary);
+  border: 1px solid var(--border);
+  border-radius: 50px;
+  box-shadow: var(--shadow-lg);
 }
 
 .search-input {
@@ -80,166 +76,218 @@
   background: transparent;
   border: none;
   color: var(--text);
-  font-size: 1.2rem;
-  padding: 1.2rem 0;
+  font-size: 1.1rem;
+  padding: 0.8rem 0.5rem;
   outline: none;
 }
 
 .search-btn {
-  background: var(--dna-gradient);
-  color: #000;
+  background: var(--medical-gradient);
+  color: #fff;
   border: none;
-  border-radius: 12px;
+  border-radius: 30px;
   padding: 0.8rem 2rem;
-  font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s ease;
 }
 
-.search-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 20px rgba(34, 211, 238, 0.3);
-}
-
-/* Content Layout (Results + Anatomy) */
+/* Result Dashboard Layout */
 .content-layout {
   display: flex;
-  gap: 3rem;
+  gap: 2.5rem;
   align-items: flex-start;
-  width: 100%;
+  animation: fadeIn 0.8s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .results-container {
   flex: 1;
   display: flex;
   flex-direction: column;
+  gap: 3rem;
+}
+
+/* Main Disease Card */
+.disease-main-card {
+  background: #fff;
+  border-radius: 24px;
+  padding: 2.5rem;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
   gap: 2rem;
 }
 
-.results-title {
-  color: var(--text-muted);
-  font-size: 1rem;
+.disease-main-card.top-result {
+  border: 2px solid var(--accent);
+  position: relative;
+}
+
+.top-badge {
+  position: absolute;
+  top: -15px;
+  right: 30px;
+  background: var(--accent);
+  color: #fff;
+  padding: 5px 15px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 2px;
-  margin-bottom: 1rem;
 }
 
-.result-card {
-  border-radius: 24px;
-  padding: 2.5rem;
-  animation: slideUp 0.5s ease-out;
-}
-
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.result-header {
+/* Header Section */
+.card-header-section {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 2rem;
-  border-bottom: 1px solid var(--border);
+  align-items: center;
   padding-bottom: 1.5rem;
+  border-bottom: 2px solid var(--accent-soft);
 }
 
-.disease-title {
+.disease-name {
   font-size: 2.2rem;
   font-weight: 800;
-  color: #fff;
+  color: var(--text);
+  margin: 0;
 }
 
-.match-score {
+.header-meta {
   display: flex;
+  gap: 15px;
   align-items: center;
-  gap: 10px;
-  background: rgba(16, 185, 129, 0.1);
-  color: var(--success);
-  padding: 0.6rem 1.2rem;
-  border-radius: 99px;
-  font-weight: 700;
-  font-size: 0.9rem;
-  border: 1px solid rgba(16, 185, 129, 0.2);
 }
 
-.details-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1.5rem;
-}
-
-.detail-item {
-  background: rgba(0, 0, 0, 0.2);
+/* Internal Boxes */
+.info-section-box {
+  background: #f8fafc;
+  border: 1px solid var(--border);
   border-radius: 16px;
   padding: 1.5rem;
-  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
 }
 
-.detail-label {
+.section-box-title {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: var(--accent);
-  font-size: 0.85rem;
+  font-size: 1rem;
   font-weight: 700;
-  margin-bottom: 0.8rem;
+  color: var(--accent);
+  margin-bottom: 1rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
-.detail-value {
+/* Specific Content Styles */
+.description-text {
+  line-height: 1.8;
   color: var(--text);
-  font-size: 1.1rem;
+  font-size: 1.05rem;
+}
+
+.gene-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.gene-tag {
+  background: var(--accent-soft);
+  color: var(--accent);
+  padding: 5px 12px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  border: 1px solid rgba(14, 165, 233, 0.2);
+}
+
+/* Grid for smaller boxes */
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+.full-width {
+  grid-column: span 2;
+}
+
+/* Table Style */
+.mutation-table-container {
+  overflow-x: auto;
+  margin-top: 0.5rem;
+}
+
+.mutation-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.mutation-table th {
+  text-align: left;
+  padding: 12px;
+  background: var(--accent-soft);
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 700;
+  border-bottom: 2px solid var(--border);
+}
+
+.mutation-table td {
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.95rem;
+}
+
+/* Lists */
+.bullet-list {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+.bullet-list li {
+  margin-bottom: 8px;
   line-height: 1.5;
 }
 
-.visualization-sidebar {
-  width: 450px;
-  position: sticky;
-  top: 2rem;
-}
-
-/* Utilities */
-.loader {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1.5rem;
-  padding: 4rem;
+.bullet-list li::marker {
   color: var(--accent);
 }
 
-.spinner {
-  animation: spin 2s linear infinite;
+/* Status & Indicators */
+.match-score-pill {
+  background: var(--accent-soft);
+  color: var(--accent);
+  padding: 8px 16px;
+  border-radius: 30px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+.risk-pill {
+  padding: 8px 16px;
+  border-radius: 30px;
+  font-weight: 700;
+  font-size: 0.85rem;
 }
 
-.error-msg {
-  border-left: 4px solid var(--danger);
-  padding: 1.5rem;
-  border-radius: 12px;
-  text-align: center;
-  margin-top: 2rem;
+.visualization-sidebar {
+  width: 400px;
+  position: sticky;
+  top: 6rem;
 }
 
-.no-results {
-  text-align: center;
-  padding: 3rem;
-  border-radius: 16px;
-}
-
-@media (max-width: 1200px) {
-  .content-layout {
-    flex-direction: column;
-  }
-  .visualization-sidebar {
-    width: 100%;
-    position: static;
-  }
+@media (max-width: 1000px) {
+  .content-layout { flex-direction: column; }
+  .visualization-sidebar { width: 100%; position: static; }
+  .info-grid { grid-template-columns: 1fr; }
+  .full-width { grid-column: span 1; }
 }

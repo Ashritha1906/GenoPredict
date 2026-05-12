@@ -10,79 +10,97 @@ class DiseasePredictor:
         self.vectorizer = TfidfVectorizer(stop_words='english')
         self.tfidf_matrix = None
         
-        # Disease Knowledge Mapping: Simplified for general users
+        # Feature 5: Detailed Disease Description
         self.disease_info = {
             "thalassemia": {
-                "causes": "Passed down from parents through genes. It makes the body produce less healthy blood (hemoglobin).",
-                "prevention": "Check with a doctor before marriage. Simple blood tests for couples can help understand the risk for children."
+                "description": "Thalassemia is a genetic blood disorder characterized by reduced hemoglobin production. It leads to anemia, fatigue, and weakness. The condition is caused by mutations in genes responsible for hemoglobin synthesis, especially the HBB gene. Patients may experience delayed growth, pale skin, and bone deformities. It is commonly seen in India and Mediterranean regions. Severe cases require regular blood transfusions. Iron overload is a major complication. Early diagnosis helps manage the disease effectively. Genetic counseling is recommended for families at risk. With proper treatment, patients can lead a better quality of life.",
+                "causes": "Mutation in hemoglobin genes such as HBB",
+                "prevention": "Genetic screening, counseling, and early diagnosis"
             },
             "sickle cell disease": {
-                "causes": "An inherited problem where blood cells change shape and get stuck in blood vessels, causing pain.",
-                "prevention": "Couples should get screened before having children. Early check-ups help manage the condition better."
+                "description": "Sickle cell disease is a group of inherited red blood cell disorders where red blood cells become hard and sticky, looking like a C-shaped farm tool called a sickle. These misshapen cells die early, leading to a constant shortage of red blood cells. They can also get stuck in small blood vessels and block blood flow, causing severe pain and other serious problems such as infection, acute chest syndrome, and stroke. It is inherited in an autosomal recessive pattern. Frequent monitoring and treatments like hydroxyurea or blood transfusions are essential. Comprehensive care can significantly improve life expectancy and quality.",
+                "causes": "A genetic mutation in the HBB gene that causes abnormal hemoglobin to form.",
+                "prevention": "Preconception genetic screening, early prenatal diagnosis, and prophylactic antibiotics for newborns."
             },
             "sickle_cell": {
-                "causes": "An inherited problem where blood cells change shape and get stuck in blood vessels, causing pain.",
-                "prevention": "Couples should get screened before having children. Early check-ups help manage the condition better."
+                "description": "Sickle cell disease is a group of inherited red blood cell disorders where red blood cells become hard and sticky, looking like a C-shaped farm tool called a sickle. These misshapen cells die early, leading to a constant shortage of red blood cells. They can also get stuck in small blood vessels and block blood flow, causing severe pain and other serious problems such as infection, acute chest syndrome, and stroke. It is inherited in an autosomal recessive pattern. Frequent monitoring and treatments like hydroxyurea or blood transfusions are essential. Comprehensive care can significantly improve life expectancy and quality.",
+                "causes": "A genetic mutation in the HBB gene that causes abnormal hemoglobin to form.",
+                "prevention": "Preconception genetic screening, early prenatal diagnosis, and prophylactic antibiotics for newborns."
             },
             "glucose-6-phosphate dehydrogenase deficiency": {
-                "causes": "A genetic condition where the body lacks a special chemical that protects red blood cells.",
-                "prevention": "Stay away from certain foods like fava beans and some medicines. Always tell your doctor about this condition."
+                "description": "Glucose-6-phosphate dehydrogenase (G6PD) deficiency is an inherited condition usually occurring in males. It is characterized by the sudden destruction of red blood cells (hemolysis) and can lead to hemolytic anemia with red blood cells breaking down faster than the body can replace them. This destruction can be triggered by infections, severe stress, certain foods (such as fava beans), and certain drugs (like antimalarials). Symptoms include paleness, jaundice, dark urine, fatigue, and a rapid heart rate. Most people with G6PD deficiency are asymptomatic until exposed to a trigger. Avoiding known triggers is the most critical management strategy.",
+                "causes": "Mutations in the G6PD gene inherited in an X-linked recessive pattern.",
+                "prevention": "Avoid known dietary triggers like fava beans and certain oxidative drugs. Medical consultation before starting new medications."
             },
             "g6pd": {
-                "causes": "A genetic condition where the body lacks a special chemical that protects red blood cells.",
-                "prevention": "Stay away from certain foods like fava beans and some medicines. Always tell your doctor about this condition."
+                "description": "Glucose-6-phosphate dehydrogenase (G6PD) deficiency is an inherited condition usually occurring in males. It is characterized by the sudden destruction of red blood cells (hemolysis) and can lead to hemolytic anemia with red blood cells breaking down faster than the body can replace them. This destruction can be triggered by infections, severe stress, certain foods (such as fava beans), and certain drugs (like antimalarials). Symptoms include paleness, jaundice, dark urine, fatigue, and a rapid heart rate. Most people with G6PD deficiency are asymptomatic until exposed to a trigger. Avoiding known triggers is the most critical management strategy.",
+                "causes": "Mutations in the G6PD gene inherited in an X-linked recessive pattern.",
+                "prevention": "Avoid known dietary triggers like fava beans and certain oxidative drugs. Medical consultation before starting new medications."
             },
             "breast cancer": {
-                "causes": "Changes in certain genes (like BRCA) that can be passed down in families.",
-                "prevention": "Regular check-ups and mammograms. Eating healthy and staying active also helps reduce the risk."
+                "description": "Breast cancer forms in the cells of the breasts and can occur in both men and women, though it's far more common in women. Some breast cancers are linked to inherited gene mutations, most notably BRCA1 and BRCA2, which significantly increase the risk of developing breast and ovarian cancers. Symptoms may include a lump in the breast, changes in breast size or shape, skin dimpling, and newly inverted nipples. Early detection through regular screening is crucial and greatly improves treatment outcomes. Treatment options include surgery, radiation, chemotherapy, hormone therapy, and targeted therapies based on the tumor's biological characteristics.",
+                "causes": "Inherited mutations in BRCA1, BRCA2, and other susceptible genes, along with environmental factors.",
+                "prevention": "Regular mammograms, clinical breast exams, maintaining a healthy weight, and genetic counseling for high-risk families."
             },
             "breast_cancer": {
-                "causes": "Changes in certain genes (like BRCA) that can be passed down in families.",
-                "prevention": "Regular check-ups and mammograms. Eating healthy and staying active also helps reduce the risk."
+                "description": "Breast cancer forms in the cells of the breasts and can occur in both men and women, though it's far more common in women. Some breast cancers are linked to inherited gene mutations, most notably BRCA1 and BRCA2, which significantly increase the risk of developing breast and ovarian cancers. Symptoms may include a lump in the breast, changes in breast size or shape, skin dimpling, and newly inverted nipples. Early detection through regular screening is crucial and greatly improves treatment outcomes. Treatment options include surgery, radiation, chemotherapy, hormone therapy, and targeted therapies based on the tumor's biological characteristics.",
+                "causes": "Inherited mutations in BRCA1, BRCA2, and other susceptible genes, along with environmental factors.",
+                "prevention": "Regular mammograms, clinical breast exams, maintaining a healthy weight, and genetic counseling for high-risk families."
             },
             "parkinson's disease": {
-                "causes": "Brain cells that control movement slowly stop working. It can be caused by genes or aging.",
-                "prevention": "Exercise regularly and eat a balanced diet. Early visits to a brain specialist (neurologist) are helpful."
+                "description": "Parkinson's disease is a progressive nervous system disorder that affects movement. It develops gradually, often starting with a barely noticeable tremor in just one hand. The disorder also commonly causes stiffness or slowing of movement. In the early stages, the face may show little or no expression, and arms may not swing during walking. While mostly idiopathic, about 10-15% of cases are linked to specific genetic mutations (like LRRK2, PARK7, PINK1). Although it cannot be cured, medications can significantly improve symptoms by increasing dopamine levels in the brain, and in some cases, surgery may be recommended.",
+                "causes": "Degeneration of dopamine-producing neurons, sometimes linked to specific genetic mutations and environmental triggers.",
+                "prevention": "While not entirely preventable, a healthy diet, regular aerobic exercise, and avoiding toxic environmental exposures may reduce risk."
             },
             "parkinsons": {
-                "causes": "Brain cells that control movement slowly stop working. It can be caused by genes or aging.",
-                "prevention": "Exercise regularly and eat a balanced diet. Early visits to a brain specialist (neurologist) are helpful."
+                "description": "Parkinson's disease is a progressive nervous system disorder that affects movement. It develops gradually, often starting with a barely noticeable tremor in just one hand. The disorder also commonly causes stiffness or slowing of movement. In the early stages, the face may show little or no expression, and arms may not swing during walking. While mostly idiopathic, about 10-15% of cases are linked to specific genetic mutations (like LRRK2, PARK7, PINK1). Although it cannot be cured, medications can significantly improve symptoms by increasing dopamine levels in the brain, and in some cases, surgery may be recommended.",
+                "causes": "Degeneration of dopamine-producing neurons, sometimes linked to specific genetic mutations and environmental triggers.",
+                "prevention": "While not entirely preventable, a healthy diet, regular aerobic exercise, and avoiding toxic environmental exposures may reduce risk."
             },
             "hemophilia": {
-                "causes": "A condition passed from parents where the blood doesn't clot properly after an injury.",
-                "prevention": "Genetic testing for families. Be careful to avoid accidents that cause heavy bleeding."
+                "description": "Hemophilia is a rare, usually inherited disorder in which the blood doesn't clot normally because it lacks sufficient blood-clotting proteins (clotting factors). People with hemophilia can bleed for a longer time after an injury and may experience dangerous internal bleeding, especially in knees, ankles, and elbows. This internal bleeding can damage organs and tissues and can be life-threatening. The condition is primarily X-linked recessive, affecting mostly males. Treatment involves regular replacement of the specific clotting factor that is reduced or missing. Modern therapies and comprehensive care allow patients to lead active and healthy lives.",
+                "causes": "Mutations in genes responsible for producing clotting factor VIII (Hemophilia A) or factor IX (Hemophilia B).",
+                "prevention": "Genetic counseling and testing for carriers. Preventing injuries and avoiding blood-thinning medications are critical for management."
             },
             "familial hypercholesterolemia": {
-                "causes": "High cholesterol that runs in the family because of a gene problem.",
-                "prevention": "Start heart-healthy habits early, like low-fat food and regular exercise. Regular blood tests are important."
+                "description": "Familial hypercholesterolemia (FH) is a genetic disorder characterized by exceptionally high levels of low-density lipoprotein (LDL) cholesterol in the blood. This leads to an increased risk of early onset coronary artery disease and heart attacks, often before the age of 50. It is usually caused by mutations in the LDLR gene, which prevents the liver from efficiently removing LDL cholesterol from the bloodstream. Physical signs may include cholesterol deposits under the skin (xanthomas) or around the eyes. Lifestyle changes and statin medications are the cornerstone of treatment to lower cholesterol levels and mitigate cardiovascular risk.",
+                "causes": "Mutations in the LDLR, APOB, or PCSK9 genes causing defective cholesterol clearance.",
+                "prevention": "Early cholesterol screening, aggressive lipid-lowering therapies, and maintaining a strict heart-healthy diet and lifestyle."
             },
             "fh": {
-                "causes": "High cholesterol that runs in the family because of a gene problem.",
-                "prevention": "Start heart-healthy habits early, like low-fat food and regular exercise. Regular blood tests are important."
+                "description": "Familial hypercholesterolemia (FH) is a genetic disorder characterized by exceptionally high levels of low-density lipoprotein (LDL) cholesterol in the blood. This leads to an increased risk of early onset coronary artery disease and heart attacks, often before the age of 50. It is usually caused by mutations in the LDLR gene, which prevents the liver from efficiently removing LDL cholesterol from the bloodstream. Physical signs may include cholesterol deposits under the skin (xanthomas) or around the eyes. Lifestyle changes and statin medications are the cornerstone of treatment to lower cholesterol levels and mitigate cardiovascular risk.",
+                "causes": "Mutations in the LDLR, APOB, or PCSK9 genes causing defective cholesterol clearance.",
+                "prevention": "Early cholesterol screening, aggressive lipid-lowering therapies, and maintaining a strict heart-healthy diet and lifestyle."
             },
             "cystic fibrosis": {
-                "causes": "A gene problem passed from parents that makes the body produce thick mucus in the lungs.",
-                "prevention": "Genetic testing for parents. Early treatment and special lung exercises can keep the body healthy."
+                "description": "Cystic fibrosis is a progressive, genetic disease that causes persistent lung infections and limits the ability to breathe over time. It is caused by mutations in the CFTR gene, which leads to the production of thick, sticky mucus in various organs, most notably the lungs and pancreas. This mucus clogs the airways and traps bacteria, leading to infections, extensive lung damage, and eventual respiratory failure. In the pancreas, the mucus prevents the release of digestive enzymes. Daily care regimens, including airway clearance techniques and inhaled medications, are vital. Recent advancements in CFTR modulator therapies have significantly improved patient outcomes.",
+                "causes": "Autosomal recessive mutations in the CFTR gene leading to defective chloride channel function.",
+                "prevention": "Carrier screening for prospective parents and newborn screening for early intervention and treatment."
             },
             "cystic_fibrosis": {
-                "causes": "A gene problem passed from parents that makes the body produce thick mucus in the lungs.",
-                "prevention": "Genetic testing for parents. Early treatment and special lung exercises can keep the body healthy."
+                "description": "Cystic fibrosis is a progressive, genetic disease that causes persistent lung infections and limits the ability to breathe over time. It is caused by mutations in the CFTR gene, which leads to the production of thick, sticky mucus in various organs, most notably the lungs and pancreas. This mucus clogs the airways and traps bacteria, leading to infections, extensive lung damage, and eventual respiratory failure. In the pancreas, the mucus prevents the release of digestive enzymes. Daily care regimens, including airway clearance techniques and inhaled medications, are vital. Recent advancements in CFTR modulator therapies have significantly improved patient outcomes.",
+                "causes": "Autosomal recessive mutations in the CFTR gene leading to defective chloride channel function.",
+                "prevention": "Carrier screening for prospective parents and newborn screening for early intervention and treatment."
             },
             "hypertrophic cardiomyopathy": {
-                "causes": "A condition where the heart muscle gets too thick, often because of family genes.",
-                "prevention": "Heart check-ups for family members. Avoid very heavy exercise if you have this condition."
+                "description": "Hypertrophic cardiomyopathy (HCM) is a disease in which the heart muscle becomes abnormally thick (hypertrophied), making it harder for the heart to pump blood. It is often caused by inherited genetic mutations affecting heart muscle proteins. Many people with HCM have few, if any, symptoms and can lead normal lives, but others may experience shortness of breath, chest pain, or arrhythmias. It is a leading cause of sudden cardiac arrest in young people, including athletes. Treatment depends on symptoms and risk factors, ranging from medications to surgical interventions and implantable cardioverter-defibrillators (ICDs) to prevent sudden death.",
+                "causes": "Inherited mutations in genes encoding sarcomere proteins of the heart muscle.",
+                "prevention": "Family screening with echocardiograms and genetic testing. Avoiding intense competitive sports if diagnosed is crucial."
             },
             "hcm": {
-                "causes": "A condition where the heart muscle gets too thick, often because of family genes.",
-                "prevention": "Heart check-ups for family members. Avoid very heavy exercise if you have this condition."
+                "description": "Hypertrophic cardiomyopathy (HCM) is a disease in which the heart muscle becomes abnormally thick (hypertrophied), making it harder for the heart to pump blood. It is often caused by inherited genetic mutations affecting heart muscle proteins. Many people with HCM have few, if any, symptoms and can lead normal lives, but others may experience shortness of breath, chest pain, or arrhythmias. It is a leading cause of sudden cardiac arrest in young people, including athletes. Treatment depends on symptoms and risk factors, ranging from medications to surgical interventions and implantable cardioverter-defibrillators (ICDs) to prevent sudden death.",
+                "causes": "Inherited mutations in genes encoding sarcomere proteins of the heart muscle.",
+                "prevention": "Family screening with echocardiograms and genetic testing. Avoiding intense competitive sports if diagnosed is crucial."
             },
             "hereditary anemia": {
-                "causes": "Blood problems that are passed down from parents to children.",
-                "prevention": "Good nutrition and regular check-ups with a blood doctor (hematologist)."
+                "description": "Hereditary anemias comprise a group of genetic disorders characterized by a reduced number of red blood cells or decreased hemoglobin levels. This broad category includes conditions like thalassemia, sickle cell disease, and spherocytosis. These disorders result from mutations affecting red blood cell production, structure, or lifespan. Common symptoms include chronic fatigue, weakness, pale skin, and shortness of breath. The severity can vary widely from mild, asymptomatic traits to severe forms requiring life-long medical care. Treatment is tailored to the specific type of anemia but often includes blood transfusions, iron chelation, or sometimes bone marrow transplantation.",
+                "causes": "Various genetic mutations affecting red blood cell membrane, enzymes, or hemoglobin structure.",
+                "prevention": "Genetic counseling and carrier screening. Ongoing medical monitoring is required to manage complications like iron overload."
             },
             "hereditary_anemia": {
-                "causes": "Blood problems that are passed down from parents to children.",
-                "prevention": "Good nutrition and regular check-ups with a blood doctor (hematologist)."
+                "description": "Hereditary anemias comprise a group of genetic disorders characterized by a reduced number of red blood cells or decreased hemoglobin levels. This broad category includes conditions like thalassemia, sickle cell disease, and spherocytosis. These disorders result from mutations affecting red blood cell production, structure, or lifespan. Common symptoms include chronic fatigue, weakness, pale skin, and shortness of breath. The severity can vary widely from mild, asymptomatic traits to severe forms requiring life-long medical care. Treatment is tailored to the specific type of anemia but often includes blood transfusions, iron chelation, or sometimes bone marrow transplantation.",
+                "causes": "Various genetic mutations affecting red blood cell membrane, enzymes, or hemoglobin structure.",
+                "prevention": "Genetic counseling and carrier screening. Ongoing medical monitoring is required to manage complications like iron overload."
             }
         }
         
@@ -108,28 +126,39 @@ class DiseasePredictor:
             "hereditary_anemia": "Blood"
         }
 
+    # Feature 3: Input Enhancement
+    def enhance_input(self, text):
+        synonyms = {
+            "poor appetite": "poor appetite loss of appetite low hunger eating problem nutrition deficiency",
+            "fatigue": "fatigue tiredness weakness low energy exhaustion",
+            "fever": "fever high temperature hot sweating chills",
+            "pain": "pain aching soreness discomfort hurting",
+            "weakness": "weakness frailty lack of strength tired",
+            "pale": "pale pale skin colorless pallor",
+            "breathless": "breathless shortness of breath difficulty breathing panting"
+        }
+        text_lower = text.lower()
+        enhanced_text = text_lower
+        for key, syns in synonyms.items():
+            if key in text_lower:
+                enhanced_text += " " + syns
+        return enhanced_text
+
     def load_and_prepare_data(self):
         try:
             self.df = pd.read_csv(self.data_path)
             
-            # Create a combined features column for NLP matching
-            # Assuming columns: gene_id, gene_name, condition, variation, protein_change, consequence, location, review_status, disease
-            
-            # Handle potential NaN values
             cols_to_combine = ['gene_name', 'condition', 'variation', 'protein_change', 'consequence', 'disease']
             for col in cols_to_combine:
                 if col in self.df.columns:
                     self.df[col] = self.df[col].fillna('')
             
-            # Create a searchable text column
-            # We focus on conditions, variations, genes, and recovery/region
+            # Feature 4: Improved Text Matching
             self.df['search_text'] = self.df['condition'].astype(str) + " " + \
-                                     self.df['variation'].astype(str) + " " + \
                                      self.df['gene_name'].astype(str) + " " + \
+                                     self.df['variation'].astype(str) + " " + \
                                      self.df['disease'].astype(str)
             
-            # Map common symptoms to search text so user inputs like "fatigue" or "fever" will match
-            # Keys MUST match the unique diseases in the CSV ('breast_cancer', 'cystic_fibrosis', 'fh', 'g6pd', 'hcm', 'hemophilia', 'hereditary_anemia', 'parkinsons', 'sickle_cell', 'thalassemia')
             symptom_mapping = {
                 "thalassemia": "fatigue pale skin weakness anemia tired exhaustion dizzy dizzy breathless bone deformities dark urine",
                 "sickle cell disease": "pain infections fatigue swelling anemia tired crisis vision problems delayed growth frequent infections",
@@ -160,100 +189,108 @@ class DiseasePredictor:
             print(f"Error loading data: {e}")
             return False
 
-    def predict(self, user_input, top_n=3):
+    def predict(self, user_input, top_n=5):
         if self.df is None or self.tfidf_matrix is None:
             return {"error": "Model not loaded"}
 
         clean_input = user_input.strip().lower()
-
-        # Step 1: Check if user input matches gene_name column
-        exact_matches = self.df[self.df['gene_name'].astype(str).str.lower() == clean_input]
         
-        # Step 2: If no gene match, check variation column
+        # Exact match logic (gene/variation)
+        exact_matches = self.df[self.df['gene_name'].astype(str).str.lower() == clean_input]
         if exact_matches.empty:
             exact_matches = self.df[self.df['variation'].astype(str).str.lower() == clean_input]
 
-        # Step 3: If gene/mutation match is found, return the results
         if not exact_matches.empty:
             results = []
             seen_diseases = set()
             for _, row in exact_matches.iterrows():
                 disease_name = row.get('disease', 'Unknown')
-                
                 if disease_name.lower() not in seen_diseases:
                     seen_diseases.add(disease_name.lower())
-                    
                     disease_key = disease_name.lower().strip()
+                    disease_details = self.disease_info.get(disease_key, {})
+                    
                     match = {
                         "disease": disease_name,
                         "confidence_score": 100.0,
+                        "description": disease_details.get("description", "Description not available."),
+                        "causes": disease_details.get("causes", "Information not available"),
+                        "prevention": disease_details.get("prevention", "Information not available"),
                         "related_genes": row.get('gene_name', 'N/A'),
                         "mutation_info": f"Variation: {row.get('variation', 'N/A')} | Protein Change: {row.get('protein_change', 'N/A')} | Consequence: {row.get('consequence', 'N/A')} | Condition: {row.get('condition', 'N/A')} | Review Status: {row.get('review_status', 'N/A')}",
                         "prevalence_in_india": row.get('region', 'Data not available'),
                         "recovery_treatment": row.get('recovery', 'Consult a healthcare professional'),
-                        "affected_organ": self.organ_map.get(disease_key, "General / Multiple"),
-                        "causes": self.disease_info.get(disease_key, {}).get("causes", "Information not available"),
-                        "prevention": self.disease_info.get(disease_key, {}).get("prevention", "Information not available")
+                        "affected_organ": self.organ_map.get(disease_key, "General / Multiple")
                     }
                     results.append(match)
-                    
-                    if len(results) >= top_n:
-                        break
-            return results
+                    if len(results) >= 1:
+                        break # Only return 1 for exact match
+            return results[0] if len(results) == 1 else results
 
-        # Step 4: Fallback to existing NLP model if no exact match is found
-        # Transform user input
-        user_vector = self.vectorizer.transform([user_input])
-        
-        # Calculate cosine similarity
+        # Feature 6: Updated ML Logic
+        enhanced_input = self.enhance_input(user_input)
+        user_vector = self.vectorizer.transform([enhanced_input])
         similarities = cosine_similarity(user_vector, self.tfidf_matrix).flatten()
         
-        # Get top matches (fetch more to allow filtering duplicates)
-        top_indices = similarities.argsort()[-top_n*10:][::-1]
+        top_indices = similarities.argsort()[::-1]
+        
+        highest_score = similarities[top_indices[0]] if len(top_indices) > 0 else 0
+        
+        # Feature 1: Smart Disease Selection
+        is_strong_match = highest_score > 0.60
+        threshold = 0.10 if not is_strong_match else 0.60
+        max_results = 1 if is_strong_match else top_n
         
         results = []
         seen_diseases = set()
         
         for idx in top_indices:
             score = similarities[idx]
-            if score > 0.05:  # Threshold to avoid irrelevant matches
-                row = self.df.iloc[idx]
-                disease_name = row.get('disease', 'Unknown')
+            if score < threshold:
+                break
                 
-                # Only add one representative result per disease to avoid duplicates
-                if disease_name.lower() not in seen_diseases:
-                    seen_diseases.add(disease_name.lower())
-                    
-                    disease_details = self.disease_info.get(disease_name.title(), {})
-                    
-                    disease_key = disease_name.lower().strip()
-                    match = {
-                        "disease": disease_name,
-                        "confidence_score": round(score * 100, 2),
-                        "related_genes": row.get('gene_name', 'N/A'),
-                        "mutation_info": f"Variation: {row.get('variation', 'N/A')} | Protein Change: {row.get('protein_change', 'N/A')} | Consequence: {row.get('consequence', 'N/A')} | Condition: {row.get('condition', 'N/A')} | Review Status: {row.get('review_status', 'N/A')}",
-                        "prevalence_in_india": row.get('region', 'Data not available'),
-                        "recovery_treatment": row.get('recovery', 'Consult a healthcare professional'),
-                        "affected_organ": self.organ_map.get(disease_key, "General / Multiple"),
-                        "causes": self.disease_info.get(disease_key, {}).get("causes", "Information not available"),
-                        "prevention": self.disease_info.get(disease_key, {}).get("prevention", "Information not available")
-                    }
-                    results.append(match)
-                    
-                    # Stop once we have top_n distinct diseases
-                    if len(results) >= top_n:
-                        break
+            row = self.df.iloc[idx]
+            disease_name = row.get('disease', 'Unknown')
+            
+            if disease_name.lower() not in seen_diseases:
+                seen_diseases.add(disease_name.lower())
                 
+                disease_key = disease_name.lower().strip()
+                disease_details = self.disease_info.get(disease_key, {})
+                
+                # Feature 2: Confidence Scoring
+                confidence = round(score * 100, 2)
+                
+                match = {
+                    "disease": disease_name,
+                    "confidence_score": confidence,
+                    "description": disease_details.get("description", "Description not available."),
+                    "causes": disease_details.get("causes", "Information not available"),
+                    "prevention": disease_details.get("prevention", "Information not available"),
+                    "related_genes": row.get('gene_name', 'N/A'),
+                    "mutation_info": f"Variation: {row.get('variation', 'N/A')} | Protein Change: {row.get('protein_change', 'N/A')} | Consequence: {row.get('consequence', 'N/A')} | Condition: {row.get('condition', 'N/A')} | Review Status: {row.get('review_status', 'N/A')}",
+                    "prevalence_in_india": row.get('region', 'Data not available'),
+                    "recovery_treatment": row.get('recovery', 'Consult a healthcare professional'),
+                    "affected_organ": self.organ_map.get(disease_key, "General / Multiple")
+                }
+                results.append(match)
+                
+                if len(results) >= max_results:
+                    break
+                    
         if not results:
             return {"message": "No strong matches found. Please try providing more specific symptoms or mutation names."}
+            
+        # Feature 7: Backend update
+        # Return single object if 1 result (strong match)
+        if len(results) == 1:
+            return results[0]
             
         return results
 
     def get_disease_details(self, disease_name):
-        # Return information for a specific disease
         details = self.disease_info.get(disease_name.title())
         if details:
-            # Get some sample genes associated with this disease from the dataset
             if self.df is not None:
                 genes = self.df[self.df['disease'].str.lower() == disease_name.lower()]['gene_name'].unique()[:5].tolist()
                 details['associated_genes'] = genes
@@ -266,7 +303,6 @@ class DiseasePredictor:
             
         matches = self.df[self.df['gene_name'].str.lower() == gene_name.lower()]
         if not matches.empty:
-            # Return summarized info
             diseases = matches['disease'].unique().tolist()
             variations = matches['variation'].unique()[:10].tolist()
             return {

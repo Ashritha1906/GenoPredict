@@ -1,47 +1,50 @@
 .anatomy-visualization {
-  background: rgba(10, 37, 64, 0.4);
-  border: 1px solid rgba(0, 119, 255, 0.2);
+  background: linear-gradient(145deg, #0f172a, #1e293b);
+  border: 1px solid rgba(14, 165, 233, 0.3);
   border-radius: 24px;
   padding: 1.5rem;
   display: flex;
   flex-direction: column;
   align-items: center;
-  backdrop-filter: blur(12px);
   width: 100%;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-  perspective: 1500px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  position: relative;
+  overflow: hidden;
 }
 
 .anatomy-visualization h3 {
-  color: var(--text-muted);
-  font-size: 1.1rem;
-  margin-bottom: 2rem;
+  color: var(--accent);
+  font-size: 0.9rem;
+  font-weight: 800;
+  margin-bottom: 1.5rem;
   text-transform: uppercase;
   letter-spacing: 2px;
-  text-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-shadow: 0 0 10px rgba(14, 165, 233, 0.5);
 }
 
 .anatomy-container {
   width: 100%;
   position: relative;
-  transform-style: preserve-3d;
+  background: #000;
+  border-radius: 16px;
+  padding: 0;
+  border: 1px solid rgba(14, 165, 233, 0.2);
 }
 
 .image-wrapper {
   position: relative;
   width: 100%;
-  border-radius: 16px;
+  border-radius: 12px;
   overflow: hidden;
-  border: 1px solid rgba(0, 212, 255, 0.2);
-  box-shadow: inset 0 0 40px rgba(0, 212, 255, 0.1);
-  background: #000;
 }
 
 .body-3d-image {
   width: 100%;
   display: block;
   filter: brightness(0.8) contrast(1.1);
-  transition: transform 0.5s ease;
 }
 
 .overlay-scanline {
@@ -54,13 +57,14 @@
     0deg,
     transparent,
     transparent 2px,
-    rgba(0, 212, 255, 0.05) 3px,
-    rgba(0, 212, 255, 0.05) 3px
+    rgba(14, 165, 233, 0.05) 3px,
+    rgba(14, 165, 233, 0.05) 3px
   );
   pointer-events: none;
+  z-index: 5;
 }
 
-/* Marker System */
+/* Highlight Circle System */
 .marker-system {
   position: absolute;
   top: 0;
@@ -68,77 +72,49 @@
   width: 100%;
   height: 100%;
   pointer-events: none;
+  z-index: 10;
 }
 
-.organ-glow-point {
+.organ-highlight-circle {
   position: absolute;
-  width: 12px;
-  height: 12px;
-  background: #fff;
+  border: 2px solid #ef4444; 
+  background: rgba(239, 68, 68, 0.1);
   border-radius: 50%;
   opacity: 0;
-  transform: translate(-50%, -50%) scale(0);
-  transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transform: translate(-50%, -50%) scale(0.5);
+  transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-/* Individual Organ Coordinates on the 3D Image */
-.brain-point { top: 6%; left: 50%; }
-.lungs-point { top: 32%; left: 50%; width: 40px; height: 30px; border-radius: 20px; }
-.heart-point { top: 30%; left: 52%; }
-.breast-left-point { top: 33%; left: 45%; }
-.breast-right-point { top: 33%; left: 55%; }
-.blood-point { top: 50%; left: 50%; width: 60%; height: 80%; border-radius: 40%; background: transparent; border: 2px solid #ef4444; }
-.marrow-left-point { top: 75%; left: 42%; height: 60px; border-radius: 10px; }
-.marrow-right-point { top: 75%; left: 58%; height: 60px; border-radius: 10px; }
+/* Precise Positioning over organs */
+.brain-point { top: 12%; left: 50%; width: 50px; height: 50px; border-color: #f97316; }
+.lungs-point { top: 32%; left: 50%; width: 90px; height: 70px; }
+.heart-point { top: 31%; left: 52%; width: 40px; height: 40px; border-color: #dc2626; }
+.breast-point { top: 35%; left: 50%; width: 120px; height: 50px; border-color: #fb923c; }
+.blood-point { top: 50%; left: 50%; width: 60%; height: 80%; border-radius: 100px; border-color: #ef4444; }
 
-/* Active States */
-.brain .brain-point,
-.lungs .lungs-point,
-.heart .heart-point,
-.breast .breast-left-point, .breast .breast-right-point,
-.blood .blood-point,
-.blood-bone-marrow .blood-point, .blood-bone-marrow .marrow-left-point, .blood-bone-marrow .marrow-right-point {
+.organ-highlight-circle.active {
   opacity: 1;
   transform: translate(-50%, -50%) scale(1);
-  box-shadow: 0 0 30px currentColor;
-  animation: markerPulse 1.5s infinite;
+  box-shadow: 0 0 25px rgba(239, 68, 68, 0.3);
+  animation: subtlePulse 2.5s infinite ease-in-out;
 }
 
-.brain .brain-point { color: #c084fc; background: #c084fc; }
-.lungs .lungs-point { color: #38bdf8; background: rgba(56, 189, 248, 0.3); border: 2px solid #38bdf8; }
-.heart .heart-point { color: #fb7185; background: #fb7185; }
-.breast .breast-left-point, .breast .breast-right-point { color: #f472b6; background: #f472b6; }
-.blood .blood-point { color: #ef4444; border-color: #ef4444; }
-.blood-bone-marrow .marrow-left-point, .blood-bone-marrow .marrow-right-point { color: #ef4444; background: rgba(239, 68, 68, 0.4); border: 2px solid #ef4444; }
-
-@keyframes markerPulse {
-  0% { box-shadow: 0 0 10px currentColor; opacity: 0.8; }
-  50% { box-shadow: 0 0 40px currentColor; opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
-  100% { box-shadow: 0 0 10px currentColor; opacity: 0.8; }
+@keyframes subtlePulse {
+  0%, 100% { opacity: 0.8; box-shadow: 0 0 15px currentColor; }
+  50% { opacity: 1; box-shadow: 0 0 30px currentColor; }
 }
 
-.organ-label {
+/* Label BELOW the diagram */
+.affected-organ-label-below {
   margin-top: 1.5rem;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.8);
+  border-radius: 12px;
   width: 100%;
-  padding: 1.2rem;
-  background: rgba(10, 37, 64, 0.8);
-  border-left: 4px solid var(--accent);
-  border-radius: 0 12px 12px 0;
-  animation: slideIn 0.5s ease-out;
+  text-align: center;
+  border: 1px solid rgba(14, 165, 233, 0.1);
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.1rem;
+  text-transform: capitalize;
 }
-
-.organ-label strong {
-  display: block;
-  font-size: 1.4rem;
-  color: var(--accent);
-  text-transform: uppercase;
-  margin-bottom: 0.4rem;
-}
-
-.analysis-text {
-  font-size: 0.9rem;
-  color: var(--text-muted);
-  font-style: italic;
-}
-
-
