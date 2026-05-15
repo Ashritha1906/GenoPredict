@@ -3,7 +3,7 @@ from flask_cors import CORS
 from ml_model import DiseasePredictor
 from database import DatabaseManager
 import os
-import requests
+import json
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 CORS(app)  # Enable CORS for frontend connection
@@ -18,6 +18,17 @@ if os.path.exists(DATA_FILE):
 else:
     print(f"Warning: Dataset not found at {DATA_FILE}.")
 
+# Load Local NCBI Dataset (JSON)
+NCBI_DATA_PATH = os.path.join(os.path.dirname(__file__), "ncbi_data.json")
+NCBI_DATASET = {}
+
+if os.path.exists(NCBI_DATA_PATH):
+    print(f"Loading local NCBI dataset from {NCBI_DATA_PATH}...")
+    with open(NCBI_DATA_PATH, 'r') as f:
+        NCBI_DATASET = json.load(f)
+else:
+    print(f"Warning: Local NCBI dataset not found at {NCBI_DATA_PATH}. Run generate_json.py first.")
+
 @app.route('/', methods=['GET'])
 def health_check():
     return jsonify({
@@ -25,10 +36,6 @@ def health_check():
         "message": "Bioinformatics Disease Prediction API is running",
         "model_loaded": predictor.df is not None
     })
-
-@app.route('/ui', methods=['GET'])
-def ui():
-    return render_template('index.html')
 
 @app.route('/predict', methods=['POST'])
 def predict_disease():
@@ -48,93 +55,34 @@ def disease_details():
     details = predictor.get_disease_details(disease_name)
     return jsonify(details)
 
-@app.route('/gene-search', methods=['GET'])
-def gene_search():
-    gene_name = request.args.get('gene')
-    if not gene_name:
-        return jsonify({"error": "Please provide a 'gene' name"}), 400
-    info = predictor.search_genes(gene_name)
-    return jsonify(info)
-
-@app.route('/admin/init-db', methods=['POST'])
-def initialize_database():
-    data = request.json or {}
-    host = data.get('host', 'localhost')
-    user = data.get('user', 'root')
-    password = data.get('password', '')
-    if not os.path.exists(DATA_FILE):
-        return jsonify({"error": "Dataset not found."}), 404
-    db = DatabaseManager(host=host, user=user, password=password)
-    if not db.connect():
-        return jsonify({"error": "Failed to connect to MySQL."}), 500
-    db.create_tables()
-    success = db.import_csv_to_db(DATA_FILE)
-    db.close()
-    if success:
-        return jsonify({"message": "Database initialized!"})
-    return jsonify({"error": "Failed to import data."}), 500
-
-
 @app.route('/more-details', methods=['GET'])
 def more_details():
-    disease_name = request.args.get('disease', '').strip()
+    disease_name = request.args.get('disease')
     if not disease_name:
-        return jsonify({"error": "Please provide a disease name"}), 400
+        return jsonify({"error": "Disease name is required"}), 400
 
-    search_term = disease_name.replace('_', ' ')
-    print(f"DEBUG: Fetching NCBI data for: {search_term}")
-
-    def fetch_ncbi_data(db, term, retmax=5):
-        try:
-            search_url = f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db={db}&term={term}&retmode=json&retmax={retmax}"
-            search_res = requests.get(search_url, timeout=10).json()
-            id_list = search_res.get('esearchresult', {}).get('idlist', [])
-            
-            if not id_list:
-                return []
-
-            ids = ",".join(id_list)
-            summary_url = f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db={db}&id={ids}&retmode=json"
-            summary_res = requests.get(summary_url, timeout=10).json()
-            
-            results = []
-            uids = summary_res.get('result', {}).get('uids', [])
-            for uid in uids:
-                item = summary_res['result'][uid]
-                if db == 'gene':
-                    results.append({
-                        "name": item.get('name', 'N/A'),
-                        "description": item.get('description') or item.get('summary') or "Genomic sequence information"
-                    })
-                elif db == 'clinvar':
-                    results.append({
-                        "id": uid,
-                        "clinical_significance": item.get('clinical_significance', {}).get('description') or "Reviewed clinical variant"
-                    })
-                elif db == 'medgen':
-                    results.append({
-                        "name": item.get('title') or item.get('description') or 'Clinical Condition',
-                        "description": item.get('definition') or "Detailed clinical condition profile"
-                    })
-            return results
-        except Exception as e:
-            print(f"Error fetching from NCBI {db}: {e}")
-            return []
-
-    # Use ThreadPoolExecutor for parallel fetching
-    from concurrent.futures import ThreadPoolExecutor
-    with ThreadPoolExecutor(max_workers=3) as executor:
-        future_genes = executor.submit(fetch_ncbi_data, 'gene', search_term)
-        future_variants = executor.submit(fetch_ncbi_data, 'clinvar', search_term)
-        future_conditions = executor.submit(fetch_ncbi_data, 'medgen', search_term)
-        
-        data = {
-            "genes": future_genes.result(),
-            "variants": future_variants.result(),
-            "conditions": future_conditions.result()
-        }
+    # Clean the name for lookup (ML model often uses underscores or specific casing)
+    clean_name = disease_name.replace('_', ' ').strip()
+    
+    # Try direct lookup
+    data = NCBI_DATASET.get(clean_name)
+    
+    # Try case-insensitive lookup if not found
+    if not data:
+        for key in NCBI_DATASET:
+            if key.lower() == clean_name.lower():
+                data = NCBI_DATASET[key]
+                break
+    
+    if not data:
+        # Return empty arrays with structure to prevent frontend crashes
+        return jsonify({
+            "genes": [],
+            "variants": [],
+            "conditions": []
+        })
 
     return jsonify(data)
-    
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

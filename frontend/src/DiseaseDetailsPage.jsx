@@ -8,7 +8,11 @@ import {
   Activity, 
   Loader2, 
   AlertCircle,
-  ExternalLink
+  ExternalLink,
+  FileText,
+  Calendar,
+  CheckCircle2,
+  Database
 } from 'lucide-react';
 
 const DiseaseDetailsPage = () => {
@@ -19,29 +23,40 @@ const DiseaseDetailsPage = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    console.log('DiseaseDetailsPage: Fetching data for', diseaseName);
     const fetchData = async () => {
       setLoading(true);
       setError(null);
       try {
         const response = await axios.get(`http://localhost:5000/more-details?disease=${encodeURIComponent(diseaseName)}`);
-        console.log('DEBUG: NCBI data received:', response.data);
+        console.log('DiseaseDetailsPage: Dataset data received:', response.data);
         setData(response.data);
       } catch (err) {
-        console.error('Error fetching details:', err);
-        setError('Failed to fetch detailed genomic data from NCBI.');
+        console.error('DiseaseDetailsPage: Error fetching details:', err);
+        setError('Failed to fetch detailed data. Please ensure the backend is running.');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchData();
+    if (diseaseName) {
+      fetchData();
+    }
   }, [diseaseName]);
+
+  const renderSafeValue = (val) => {
+    if (val === null || val === undefined) return 'N/A';
+    if (typeof val === 'object') {
+      return val.value || JSON.stringify(val);
+    }
+    return String(val);
+  };
 
   if (loading) {
     return (
       <div className="loading-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
         <Loader2 className="spinner" size={48} style={{ color: 'var(--accent)', marginBottom: '1rem' }} />
-        <p style={{ fontWeight: '600', color: 'var(--text-muted)' }}>FETCHING REAL-TIME GENOMIC DATA...</p>
+        <p style={{ fontWeight: '600', color: 'var(--text-muted)' }}>LOADING GENOMIC DATASET...</p>
       </div>
     );
   }
@@ -59,7 +74,11 @@ const DiseaseDetailsPage = () => {
     );
   }
 
-  const hasData = data && (data.genes.length > 0 || data.variants.length > 0 || data.conditions.length > 0);
+  const hasData = data && (
+    (data.genes && Array.isArray(data.genes) && data.genes.length > 0) || 
+    (data.variants && Array.isArray(data.variants) && data.variants.length > 0) || 
+    (data.conditions && Array.isArray(data.conditions) && data.conditions.length > 0)
+  );
 
   return (
     <div className="details-page">
@@ -85,34 +104,78 @@ const DiseaseDetailsPage = () => {
       <div className="details-header" style={{ marginBottom: '3rem' }}>
         <h1 style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>{diseaseName}</h1>
         <p style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Activity size={18} /> Detailed Clinical & Genomic Report
+          <Database size={18} /> Verified Clinical & Genomic Report
         </p>
       </div>
 
       {!hasData ? (
-        <div className="no-data" style={{ textAlign: 'center', padding: '4rem', background: 'var(--card-bg)', borderRadius: '16px', border: '1px solid var(--border)' }}>
-          <p style={{ fontSize: '1.2rem', color: 'var(--text-muted)' }}>No additional genomic data found in NCBI databases for this condition.</p>
+        <div className="no-data" style={{ 
+          textAlign: 'center', 
+          padding: '6rem 2rem', 
+          background: 'var(--secondary)', 
+          borderRadius: '24px', 
+          border: '1px solid var(--border)',
+          boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+          animation: 'fadeIn 0.5s ease-out'
+        }}>
+          <div style={{ marginBottom: '1.5rem', opacity: 0.5 }}>
+            <Activity size={64} color="var(--accent)" />
+          </div>
+          <h3 style={{ fontSize: '1.5rem', marginBottom: '1rem', color: 'var(--text)' }}>No data available</h3>
+          <p style={{ fontSize: '1.1rem', color: 'var(--text-muted)', maxWidth: '500px', margin: '0 auto 2rem auto' }}>
+            We couldn't find a local genomic record for "{diseaseName}" in our current dataset.
+          </p>
+          <button onClick={() => navigate(-1)} className="search-btn" style={{ padding: '0.8rem 2.5rem' }}>
+            Try Another Search
+          </button>
         </div>
       ) : (
-        <div className="details-grid" style={{ display: 'grid', gap: '2rem' }}>
+        <div className="details-grid" style={{ display: 'grid', gap: '3rem' }}>
           
-          {/* Genes Section */}
-          {data.genes.length > 0 && (
+          {/* Genes Table */}
+          {data?.genes?.length > 0 && (
             <div className="info-section-box full-width">
-              <div className="section-box-title"><Dna size={20} /> Genomic Associations (NCBI Gene)</div>
+              <div className="section-box-title" style={{ background: '#004a99', color: 'white' }}>
+                <Dna size={20} /> Genes
+              </div>
               <div className="table-responsive">
-                <table className="details-table">
+                <table className="details-table ncbi-style">
                   <thead>
                     <tr>
-                      <th>Gene Symbol</th>
-                      <th>Description / Summary</th>
+                      <th style={{ width: '50%' }}>Gene</th>
+                      <th style={{ width: '50%' }}>OMIM</th>
                     </tr>
                   </thead>
                   <tbody>
                     {data.genes.map((gene, i) => (
                       <tr key={i}>
-                        <td style={{ fontWeight: '700', color: 'var(--accent)' }}>{gene.name}</td>
-                        <td>{gene.description}</td>
+                        <td style={{ fontWeight: '700' }}>
+                          <a 
+                            href={`https://www.ncbi.nlm.nih.gov/gene/?term=${encodeURIComponent(renderSafeValue(gene.gene))}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ color: '#004a99', textDecoration: 'none' }}
+                            onMouseOver={(e) => e.target.style.textDecoration = 'underline'}
+                            onMouseOut={(e) => e.target.style.textDecoration = 'none'}
+                          >
+                            {renderSafeValue(gene.gene)}
+                          </a>
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <a 
+                              href={`https://www.ncbi.nlm.nih.gov/search/all/?term=${renderSafeValue(gene.omim)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{ color: '#004a99', textDecoration: 'none' }}
+                              onMouseOver={(e) => e.target.style.textDecoration = 'underline'}
+                              onMouseOut={(e) => e.target.style.textDecoration = 'none'}
+                            >
+                              {renderSafeValue(gene.omim)}
+                            </a>
+                            <ExternalLink size={14} style={{ color: '#004a99' }} />
+                          </div>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -121,30 +184,59 @@ const DiseaseDetailsPage = () => {
             </div>
           )}
 
-          {/* Variants Section */}
-          {data.variants.length > 0 && (
+          {/* Variants Table */}
+          {data?.variants?.length > 0 && (
             <div className="info-section-box full-width">
-              <div className="section-box-title"><FlaskConical size={20} /> Clinical Variants (ClinVar)</div>
-              <div className="table-responsive">
-                <table className="details-table">
-                  <thead>
+              <div className="section-box-title" style={{ background: '#004a99', color: 'white' }}>
+                <FlaskConical size={20} /> Variant Details
+              </div>
+              <div className="table-responsive" style={{ maxHeight: '600px', overflowY: 'auto' }}>
+                <table className="details-table ncbi-style">
+                  <thead style={{ position: 'sticky', top: 0, zIndex: 10 }}>
                     <tr>
-                      <th>Variant UID</th>
-                      <th>Clinical Significance</th>
+                      <th>Variation</th>
+                      <th>Protein Change</th>
+                      <th>Consequence</th>
+                      <th>Condition</th>
+                      <th>Review Status</th>
                     </tr>
                   </thead>
                   <tbody>
                     {data.variants.map((variant, i) => (
                       <tr key={i}>
-                        <td style={{ fontFamily: 'monospace' }}>{variant.id}</td>
+                        <td style={{ fontSize: '0.9rem', fontFamily: 'monospace' }}>
+                          <a 
+                            href={`https://www.ncbi.nlm.nih.gov/clinvar/?term=${encodeURIComponent(renderSafeValue(variant.variation))}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ color: '#004a99', textDecoration: 'none' }}
+                            onMouseOver={(e) => e.target.style.textDecoration = 'underline'}
+                            onMouseOut={(e) => e.target.style.textDecoration = 'none'}
+                          >
+                            {renderSafeValue(variant.variation)}
+                          </a>
+                        </td>
+                        <td>{renderSafeValue(variant.protein_change)}</td>
+                        <td>{renderSafeValue(variant.consequence)}</td>
                         <td>
-                          <span className="risk-pill" style={{ 
-                            background: variant.clinical_significance.toLowerCase().includes('pathogenic') ? 'rgba(255, 77, 77, 0.1)' : 'rgba(77, 255, 140, 0.1)',
-                            color: variant.clinical_significance.toLowerCase().includes('pathogenic') ? '#ff4d4d' : '#4dff8c',
-                            border: 'none',
-                            fontSize: '0.8rem'
+                          <a 
+                            href={`https://www.ncbi.nlm.nih.gov/medgen/?term=${encodeURIComponent(renderSafeValue(variant.condition))}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ color: '#004a99', textDecoration: 'none' }}
+                            onMouseOver={(e) => e.target.style.textDecoration = 'underline'}
+                            onMouseOut={(e) => e.target.style.textDecoration = 'none'}
+                          >
+                            {renderSafeValue(variant.condition)}
+                          </a>
+                        </td>
+                        <td>
+                          <span style={{ 
+                            fontSize: '0.85rem', 
+                            color: renderSafeValue(variant.review_status).toLowerCase().includes('pathogenic') ? '#d32f2f' : '#2e7d32',
+                            fontWeight: '600'
                           }}>
-                            {variant.clinical_significance}
+                            {renderSafeValue(variant.review_status)}
                           </span>
                         </td>
                       </tr>
@@ -155,23 +247,40 @@ const DiseaseDetailsPage = () => {
             </div>
           )}
 
-          {/* Conditions Section */}
-          {data.conditions.length > 0 && (
+          {/* Conditions Table */}
+          {data?.conditions?.length > 0 && (
             <div className="info-section-box full-width">
-              <div className="section-box-title"><Activity size={20} /> Related Conditions (MedGen)</div>
+              <div className="section-box-title" style={{ background: '#004a99', color: 'white' }}>
+                <Activity size={20} /> Conditions - Germline
+              </div>
               <div className="table-responsive">
-                <table className="details-table">
+                <table className="details-table ncbi-style">
                   <thead>
                     <tr>
-                      <th>Condition Name</th>
-                      <th>Description</th>
+                      <th>Condition</th>
+                      <th>Classification</th>
+                      <th>Review Status</th>
+                      <th>Last Evaluated</th>
                     </tr>
                   </thead>
                   <tbody>
                     {data.conditions.map((cond, i) => (
                       <tr key={i}>
-                        <td style={{ fontWeight: '600' }}>{cond.name}</td>
-                        <td style={{ fontSize: '0.9rem' }}>{cond.description}</td>
+                        <td style={{ fontWeight: '600' }}>
+                          <a 
+                            href={`https://www.ncbi.nlm.nih.gov/medgen/?term=${encodeURIComponent(renderSafeValue(cond.condition))}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ color: '#004a99', textDecoration: 'none' }}
+                            onMouseOver={(e) => e.target.style.textDecoration = 'underline'}
+                            onMouseOut={(e) => e.target.style.textDecoration = 'none'}
+                          >
+                            {renderSafeValue(cond.condition)}
+                          </a>
+                        </td>
+                        <td>{renderSafeValue(cond.classification)}</td>
+                        <td style={{ color: '#fbc02d', letterSpacing: '2px' }}>{renderSafeValue(cond.review_status)}</td>
+                        <td>{renderSafeValue(cond.last_evaluated)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -182,8 +291,8 @@ const DiseaseDetailsPage = () => {
         </div>
       )}
 
-      <div style={{ marginTop: '4rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-        <p>Data provided by National Center for Biotechnology Information (NCBI) E-Utilities API.</p>
+      <div style={{ marginTop: '4rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem', borderTop: '1px solid var(--border)', padding: '2rem' }}>
+        <p>GenoPredict Bioinformatics Platform - Verified Genomic Dataset Access</p>
       </div>
     </div>
   );
