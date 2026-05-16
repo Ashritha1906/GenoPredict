@@ -20,13 +20,150 @@ import {
   Loader2,
   Download,
   Mic,
-  MicOff
+  MicOff,
+  MessageCircle,
+  X,
+  Send
 } from 'lucide-react'
 import { jsPDF } from 'jspdf'
 import AnatomyVisualization from './AnatomyVisualization'
 import DiseaseDetailsPage from './DiseaseDetailsPage'
 import PrevalenceMap from './PrevalenceMap'
 import './App.css'
+
+const AIChatAssistant = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [messages, setMessages] = useState([
+    { text: "Hello! I am GenoPredict AI. How can I help you understand the genomic data today?", sender: 'ai' }
+  ]);
+  const [input, setInput] = useState('');
+
+  const handleSend = () => {
+    if (!input.trim()) return;
+    const userMsg = { text: input, sender: 'user' };
+    setMessages(prev => [...prev, userMsg]);
+    setInput('');
+    
+    // Mock AI Response
+    setTimeout(() => {
+      setMessages(prev => [...prev, { text: "I'm a simulated assistant. I can help analyze genetic variations and symptoms when fully integrated.", sender: 'ai' }]);
+    }, 1000);
+  };
+
+  return (
+    <>
+      <button 
+        onClick={() => setIsOpen(true)}
+        style={{
+          position: 'fixed', bottom: '2rem', right: '2rem',
+          width: '60px', height: '60px', borderRadius: '50%',
+          background: 'var(--accent)', color: 'white',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          border: 'none', cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          zIndex: 1000
+        }}
+        title="AI Chat Assistant"
+      >
+        <MessageCircle size={30} />
+      </button>
+
+      {isOpen && (
+        <div style={{
+          position: 'fixed', bottom: '6rem', right: '2rem',
+          width: '350px', height: '450px',
+          background: 'var(--secondary)', borderRadius: '12px',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+          display: 'flex', flexDirection: 'column',
+          zIndex: 1000, border: '1px solid var(--border)',
+          overflow: 'hidden'
+        }}>
+          <div style={{ background: 'var(--accent)', color: 'white', padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 style={{ margin: 0, fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <MessageCircle size={20} /> GenoPredict AI
+            </h3>
+            <button onClick={() => setIsOpen(false)} style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer' }}>
+              <X size={20} />
+            </button>
+          </div>
+          
+          <div style={{ flex: 1, padding: '1rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {messages.map((msg, i) => (
+              <div key={i} style={{
+                alignSelf: msg.sender === 'user' ? 'flex-end' : 'flex-start',
+                background: msg.sender === 'user' ? 'var(--accent)' : 'var(--primary)',
+                color: msg.sender === 'user' ? 'white' : 'var(--text)',
+                padding: '10px 14px', borderRadius: '12px',
+                maxWidth: '85%', fontSize: '0.95rem',
+                border: msg.sender === 'ai' ? '1px solid var(--border)' : 'none'
+              }}>
+                {msg.text}
+              </div>
+            ))}
+          </div>
+
+          <div style={{ padding: '1rem', borderTop: '1px solid var(--border)', display: 'flex', gap: '8px', background: 'var(--primary)' }}>
+            <input 
+              type="text" 
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+              placeholder="Ask anything..."
+              style={{ flex: 1, padding: '8px 12px', borderRadius: '20px', border: '1px solid var(--border)', outline: 'none', background: 'var(--secondary)', color: 'var(--text)' }}
+            />
+            <button onClick={handleSend} style={{ background: 'var(--accent)', color: 'white', border: 'none', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+              <Send size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+};
+
+const DiseaseComparison = ({ results }) => {
+  if (!Array.isArray(results) || results.length < 2) return null;
+
+  return (
+    <div className="info-section-box full-width" style={{ marginTop: '2rem', border: '2px solid var(--accent)' }}>
+      <div className="section-box-title" style={{ background: 'var(--accent)', color: 'white', padding: '10px', borderRadius: '4px 4px 0 0' }}>
+        <Layers size={20} /> Disease Comparison
+      </div>
+      <div className="table-responsive" style={{ padding: '0 1rem' }}>
+        <table className="details-table" style={{ width: '100%', borderCollapse: 'collapse', marginTop: '1rem' }}>
+          <thead>
+            <tr style={{ background: 'var(--secondary)', borderBottom: '2px solid var(--border)' }}>
+              <th style={{ padding: '12px', textAlign: 'left' }}>Feature</th>
+              {results.map((r, i) => (
+                <th key={i} style={{ padding: '12px', textAlign: 'left', width: `${100 / results.length}%` }}>
+                  {r.disease}
+                  {i === 0 && <span style={{ marginLeft: '8px', fontSize: '0.8rem', background: 'var(--accent)', color: 'white', padding: '2px 6px', borderRadius: '4px' }}>Top Match</span>}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            <tr style={{ borderBottom: '1px solid var(--border)' }}>
+              <td style={{ padding: '12px', fontWeight: 'bold' }}>Confidence</td>
+              {results.map((r, i) => <td key={i} style={{ padding: '12px' }}>{r.confidence_score}%</td>)}
+            </tr>
+            <tr style={{ borderBottom: '1px solid var(--border)' }}>
+              <td style={{ padding: '12px', fontWeight: 'bold' }}>Affected Organ</td>
+              {results.map((r, i) => <td key={i} style={{ padding: '12px' }}>{r.affected_organ}</td>)}
+            </tr>
+            <tr style={{ borderBottom: '1px solid var(--border)' }}>
+              <td style={{ padding: '12px', fontWeight: 'bold' }}>Prevalence</td>
+              {results.map((r, i) => <td key={i} style={{ padding: '12px' }}>{r.common_states}</td>)}
+            </tr>
+            <tr style={{ borderBottom: '1px solid var(--border)' }}>
+              <td style={{ padding: '12px', fontWeight: 'bold' }}>Prevention</td>
+              {results.map((r, i) => <td key={i} style={{ padding: '12px', fontSize: '0.9rem' }}>{r.prevention}</td>)}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
 
 function App() {
   const navigate = useNavigate()
@@ -91,6 +228,8 @@ function App() {
       <footer style={{ padding: '4rem 2rem', borderTop: '1px solid var(--border)', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
         &copy; 2026 Genomic AI Bioinformatics System. All data is for clinical reference and educational use.
       </footer>
+      
+      <AIChatAssistant />
     </div>
   )
 }
@@ -455,6 +594,9 @@ const Dashboard = ({ query, setQuery, handleSearch, loading, error, results, nav
               ? <RenderDiseaseCard result={results} isTop={true} navigate={navigate} />
               : results.map((res, i) => <RenderDiseaseCard key={i} result={res} isTop={i === 0} index={i} navigate={navigate} />)
           }
+          {Array.isArray(results) && results.length > 1 && (
+            <DiseaseComparison results={results} />
+          )}
         </div>
 
         <div className="visualization-sidebar">
