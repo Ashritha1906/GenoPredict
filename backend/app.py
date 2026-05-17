@@ -10,6 +10,10 @@ from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
+
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+NCBI_API_KEY = os.getenv("NCBI_API_KEY")
+
 print(f"DEBUG: GROQ_API_KEY present: {'Yes' if GROQ_API_KEY else 'No'}")
 
 # Initialize Groq Client
