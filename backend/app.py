@@ -57,6 +57,17 @@ if os.path.exists(NCBI_DATA_PATH):
 else:
     print(f"Warning: Local NCBI dataset not found at {NCBI_DATA_PATH}. Run generate_json.py first.")
 
+def deduplicate(records, keys):
+    """Remove duplicate dicts from a list based on the given key fields."""
+    seen = set()
+    result = []
+    for r in records:
+        sig = tuple(str(r.get(k, '')).strip().lower() for k in keys)
+        if sig not in seen:
+            seen.add(sig)
+            result.append(r)
+    return result
+
 @app.route('/', methods=['GET'])
 def health_check():
     return jsonify({
