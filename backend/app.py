@@ -134,91 +134,6 @@ def more_details():
                 data = NCBI_DATASET[key]
                 break
     
-<<<<<<< HEAD
-    # If we found data locally and aren't searching for a specific variation, return local data
-    if data and not variation_term:
-        return jsonify(data)
-
-    print(f"DEBUG: Fetching Specialized NCBI data for: {search_term}")
-
-    def fetch_clinvar_tables(term, retmax=10):
-        try:
-            # Step 1: ESearch
-            params = {"db": "clinvar", "term": term, "retmode": "json", "retmax": retmax}
-            if NCBI_API_KEY: params["api_key"] = NCBI_API_KEY
-            
-            search_res = requests.get("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi", params=params, timeout=10).json()
-            id_list = search_res.get('esearchresult', {}).get('idlist', [])
-            
-            if not id_list:
-                return {"genes": [], "variants": [], "conditions": []}
-
-            # Step 2: ESummary
-            summary_params = {"db": "clinvar", "id": ",".join(id_list), "retmode": "json"}
-            if NCBI_API_KEY: summary_params["api_key"] = NCBI_API_KEY
-            
-            summary_res = requests.get("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi", params=summary_params, timeout=10).json()
-            result_data = summary_res.get('result', {})
-            uids = result_data.get('uids', [])
-            
-            genes_table = []
-            variants_table = []
-            conditions_table = []
-            
-            seen_genes = set()
-            seen_conditions = set()
-
-            for uid in uids:
-                item = result_data.get(uid, {})
-                
-                # Extract Genes
-                for g in item.get('genes', []):
-                    symbol = g.get('symbol')
-                    if symbol and symbol not in seen_genes:
-                        seen_genes.add(symbol)
-                        genes_table.append({
-                            "gene": symbol, # Map symbol to gene for frontend compatibility
-                            "symbol": symbol,
-                            "omim": g.get('omim_id', 'N/A')
-                        })
-
-                # Extract Variation Info
-                variants_table.append({
-                    "variation": item.get('title', 'N/A'), # Map title to variation
-                    "title": item.get('title', 'N/A'),
-                    "location": item.get('variation_loc', 'N/A'),
-                    "protein_change": 'N/A',
-                    "consequence": 'N/A',
-                    "review_status": item.get('clinical_significance', {}).get('description', 'N/A'),
-                    "significance": item.get('clinical_significance', {}).get('description', 'N/A')
-                })
-
-                # Extract Conditions
-                germline = item.get('germline_classification', {})
-                for trait in item.get('trait_refs', []):
-                    trait_name = trait.get('trait_name')
-                    if trait_name and trait_name not in seen_conditions:
-                        seen_conditions.add(trait_name)
-                        conditions_table.append({
-                            "condition": trait_name, # Map name to condition
-                            "name": trait_name,
-                            "classification": germline.get('description', 'N/A'),
-                            "pathogenicity": germline.get('description', 'N/A'),
-                            "review_status": 'N/A',
-                            "last_evaluated": 'N/A'
-                        })
-
-            return {
-                "genes": genes_table[:10],
-                "variants": variants_table[:10],
-                "conditions": conditions_table[:10]
-            }
-        except Exception as e:
-            print(f"DEBUG: Specialized Fetch Error: {e}")
-            return {"genes": [], "variants": [], "conditions": []}
-    data = fetch_clinvar_tables(search_term)
-    return jsonify(data)
-=======
     if not data:
         return jsonify({"genes": [], "variants": [], "conditions": []})
 
@@ -267,13 +182,13 @@ def disease_full():
         "doctor_recommendation": ml_data.get("doctor_recommendation", "General Physician") if ml_data else "General Physician",
         "progression":         ml_data.get("progression") if ml_data else None,
         "prevalence_in_india": ml_data.get("prevalence_in_india", "Data not available") if ml_data else "Data not available",
+        "common_states":       ml_data.get("common_states", "Nationwide") if ml_data else "Nationwide",
         "symptoms":            symptoms_list,
         "genes":               deduplicate(ncbi_data.get("genes", []),      ["gene", "omim"]),
         "variants":            deduplicate(ncbi_data.get("variants", []),   ["variation", "protein_change", "consequence"]),
         "conditions":          deduplicate(ncbi_data.get("conditions", []), ["condition", "classification", "review_status"]),
     }
     return jsonify(result)
->>>>>>> b3d9ddf (Added my feature updates)
 
 @app.route('/chat', methods=['POST'])
 def chat():
