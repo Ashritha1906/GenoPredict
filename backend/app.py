@@ -94,6 +94,21 @@ def disease_details():
     details = predictor.get_disease_details(disease_name)
     return jsonify(details)
 
+@app.route('/get-all-diseases', methods=['GET'])
+def get_all_diseases():
+    diseases = predictor.get_all_diseases()
+    return jsonify({"diseases": diseases})
+
+@app.route('/get-disease', methods=['GET'])
+def get_disease():
+    disease_name = request.args.get('name')
+    if not disease_name:
+        return jsonify({"error": "Please provide a disease 'name'"}), 400
+    details = predictor.get_disease_by_name(disease_name)
+    if details:
+        return jsonify(details)
+    return jsonify({"error": "Disease not found"}), 404
+
 @app.route('/more-details', methods=['GET'])
 def more_details():
     disease_name = request.args.get('disease', '').strip()
@@ -182,9 +197,9 @@ def chat():
     
     if client:
         try:
-            print("DEBUG: Attempting Groq API (llama3-8b-8192)...")
+            print("DEBUG: Attempting Groq API (llama-3.3-70b-versatile)...")
             response = client.chat.completions.create(
-                model="llama3-8b-8192",
+                model="llama-3.3-70b-versatile",
                 messages=[
                     {"role": "system", "content": SYSTEM_PROMPT},
                     {"role": "user", "content": f"Context: {disease_context}\n\nQuestion: {user_message}"}
