@@ -190,51 +190,111 @@ def call_groq_chat(user_message, disease_context):
 def generate_local_chat_response(user_message, disease_context):
     text = normalize_text(user_message)
     lower = text.lower()
+
+    # 1. Check if the user is asking about a general term
+    general_map = {
+        'dna': 'DNA is the genetic material that stores instructions for life. It is made of nucleotides arranged in a double helix.',
+        'gene': 'A gene is a segment of DNA that contains instructions for building a specific protein or function in the body.',
+        'genome': 'The genome is the full set of genetic material in an organism, including all its genes and non-coding sequences.',
+        'mutation': 'A mutation is a change in DNA sequence, and it can affect how genes work; some are harmless while others can cause disease.',
+        'blood': 'Blood carries oxygen, nutrients, and immune cells through the body, supporting every organ and tissue.',
+        'symptom': 'A symptom is a sign or sensation that indicates a person may have a medical condition.',
+        'disease': 'A disease is a condition that affects normal body function, often causing symptoms and requiring treatment.'
+    }
+
+    for term, response in general_map.items():
+        if re.search(rf"\b{term}s?\b", lower):
+            if any(q in lower for q in ['what', 'tell', 'define', 'explain', 'about', 'mean', 'describe']):
+                return response
+
+    # 2. Identify which disease is being referenced
+    matched_disease = None
+    best_score = 0
+    for disease in predictor.disease_info.keys():
+        disease_clean = disease.replace('_', ' ')
+        score = 0
+        
+        if disease_clean in lower:
+            score += 10
+            
+        parts = disease_clean.split()
+        if len(parts) > 1:
+            for part in parts:
+                if len(part) > 3 and re.search(rf"\b{re.escape(part)}\b", lower):
+                    score += 2
+                    
+        symptom_str = predictor.symptom_mapping.get(disease, "")
+        if symptom_str:
+            matched_symptoms = [s for s in symptom_str.split() if len(s) > 3 and re.search(rf"\b{re.escape(s)}\b", lower)]
+            score += len(matched_symptoms) * 0.5
+            
+        if score > best_score and score >= 2:
+            best_score = score
+            matched_disease = disease
+
+    # 3. Fallback to disease context if no disease matches the query keywords
+    has_context = normalize_text(disease_context) and disease_context.lower() != 'general medical query'
+    
+    # Clean up generic names extracted by extract_disease_name
     disease_name = extract_disease_name(text)
     if disease_name.lower() in ['it', 'this', 'this disease', 'the disease', 'disease', 'condition', 'the condition', 'this condition']:
         disease_name = ''
-    has_context = normalize_text(disease_context) and disease_context.lower() != 'general medical query'
-    context_disease = disease_name or (normalize_text(disease_context) if has_context else None)
+        
+    context_disease = matched_disease or disease_name or (normalize_text(disease_context) if has_context else None)
 
     if context_disease:
-        details = get_disease_details_if_available(context_disease)
+        disease_key = context_disease.lower().strip()
+        details = None
+        for k in predictor.disease_info.keys():
+            if k.lower() == disease_key or k.lower().replace('_', ' ') == disease_key.replace('_', ' '):
+                details = predictor.disease_info[k]
+                disease_key = k
+                break
+                
         if details:
             description = normalize_text(details.get('description', 'Description not available.'))
-            causes = normalize_text(details.get('causes', ''))
-            prevention = normalize_text(details.get('prevention', ''))
-            progression = details.get('progression') or {}
-            if lower.startswith('what is') or 'about' in lower:
-                return f'{context_disease} is a medical condition. {description}'
-            if any(k in lower for k in ['serious', 'dangerous', 'risk', 'severity', 'life-threatening']):
-                severity = normalize_text(progression.get('early', '') if isinstance(progression, dict) else '') or causes or description
-                return f'{context_disease} can vary in severity. {severity or "Consult a healthcare professional for an accurate assessment."}'
-            if any(k in lower for k in ['symptom', 'sign', 'manifest', 'feature']):
-                symptom_text = predictor.symptom_mapping.get(context_disease.lower(), '') if hasattr(predictor, 'symptom_mapping') else ''
-                if symptom_text:
-                    return f'Common symptoms for {context_disease} include {symptom_text}. Please consult a healthcare professional for confirmation.'
-                return f'Symptoms for {context_disease} vary. Please seek medical guidance.'
-            if any(k in lower for k in ['treatment', 'manage', 'care', 'recover']):
-                return f'Treatment for {context_disease} depends on the condition. {prevention or description or "Consult a physician for proper guidance."}'
-            return description or f'I have data on {context_disease}, but please ask a more specific question.'
+            causes = normalize_text(details.get('causes', 'Causes not specified.'))
+            prevention = normalize_text(details.get('prevention', 'Prevention not specified.'))
+            progression = details.get('progression') or predictor.progression_map.get(disease_key) or {}
+            
+            prog_str = ""
+            if isinstance(progression, dict):
+                prog_str = " ".join(f"{k.title()}: {v}." for k, v in progression.items())
+            else:
+                prog_str = str(progression)
 
-    general_map = {
-        'what is dna': 'DNA is the genetic material that stores instructions for life. It is made of nucleotides arranged in a double helix.',
-        'what is gene': 'A gene is a segment of DNA that contains instructions for building a specific protein or function in the body.',
-        'what is genome': 'The genome is the full set of genetic material in an organism, including all its genes and non-coding sequences.',
-        'what is mutation': 'A mutation is a change in DNA sequence, and it can affect how genes work; some are harmless while others can cause disease.',
-        'what is blood': 'Blood carries oxygen, nutrients, and immune cells through the body, supporting every organ and tissue.',
-        'what is symptom': 'A symptom is a sign or sensation that indicates a person may have a medical condition.',
-        'what is a disease': 'A disease is a condition that affects normal body function, often causing symptoms and requiring treatment.'
-    }
+            doctor_rec = predictor.doctor_map.get(disease_key, "a General Physician")
+            symptoms = predictor.symptom_mapping.get(disease_key, "")
 
-    for key, value in general_map.items():
-        if key in lower:
-            return value
+            # Match user intent based on keywords
+            if any(k in lower for k in ['cause', 'why', 'reason', 'genetics', 'inherited', 'genetic', 'mutation', 'source']):
+                return f"The causes of {disease_key.replace('_', ' ').title()} are: {causes}"
+                
+            if any(k in lower for k in ['prevent', 'avoid', 'reduce risk', 'stop', 'precautions']):
+                return f"To prevent or manage {disease_key.replace('_', ' ').title()}: {prevention}"
+                
+            if any(k in lower for k in ['symptom', 'sign', 'feel like', 'indicator', 'manifest', 'feature', 'detect']):
+                if symptoms:
+                    return f"Common symptoms of {disease_key.replace('_', ' ').title()} include: {symptoms.replace(' ', ', ')}. Please consult a medical professional for confirmation."
+                return f"Symptoms for {disease_key.replace('_', ' ').title()} can vary. Please seek medical guidance."
+                
+            if any(k in lower for k in ['treatment', 'manage', 'cure', 'recover', 'care', 'therapy', 'heal']):
+                return f"Management and treatment of {disease_key.replace('_', ' ').title()}: {prevention} It is advised to consult a {doctor_rec}."
+                
+            if any(k in lower for k in ['serious', 'dangerous', 'risk', 'severity', 'life-threatening', 'deadly', 'fatal', 'progression', 'stage', 'worst']):
+                severity_desc = prog_str or description
+                return f"{disease_key.replace('_', ' ').title()} can vary in severity. {severity_desc}"
+                
+            if any(k in lower for k in ['doctor', 'specialist', 'who to see', 'hospital', 'physician', 'consult', 'recommendation']):
+                return f"For {disease_key.replace('_', ' ').title()}, it is highly recommended to consult a specialist such as a {doctor_rec}."
 
-    if 'what is' in lower or 'tell me about' in lower or 'define' in lower:
-        return 'I can answer medical and genomic questions. Please specify a disease or genetic term for a more detailed response.'
+            return f"{disease_key.replace('_', ' ').title()} is a medical condition. {description}"
 
-    return 'AI assistant is currently unavailable. Please try again.'
+    for term, response in general_map.items():
+        if term in lower:
+            return response
+
+    return "I can answer medical and genomic questions. Please specify a disease, symptom, or genetic term for a detailed response."
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 CORS(app)
