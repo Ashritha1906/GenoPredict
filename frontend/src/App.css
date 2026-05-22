@@ -119,71 +119,7 @@ main {
   font-weight: 600;
 }
 
-.duration-picker-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
 
-.duration-picker-btn {
-  width: 42px;
-  height: 42px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  border: 1px solid var(--border);
-  background: var(--background);
-  color: var(--text);
-  cursor: pointer;
-  transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
-}
-
-.duration-picker-btn:hover,
-.duration-picker-btn:focus {
-  border-color: rgba(14, 165, 233, 0.6);
-  transform: translateY(-1px);
-}
-
-.duration-panel {
-  position: absolute;
-  top: calc(100% + 10px);
-  right: 0;
-  width: 220px;
-  z-index: 10;
-  padding: 0.8rem;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.98);
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
-}
-
-.duration-panel-title {
-  font-size: 0.95rem;
-  font-weight: 700;
-  margin-bottom: 0.55rem;
-  color: var(--text);
-}
-
-.duration-option {
-  width: 100%;
-  display: block;
-  text-align: left;
-  background: transparent;
-  border: none;
-  padding: 0.55rem 0.6rem;
-  border-radius: 14px;
-  color: var(--text);
-  font-size: 0.95rem;
-  cursor: pointer;
-  transition: background 0.18s ease, color 0.18s ease;
-}
-
-.duration-option:hover,
-.duration-option.selected {
-  background: rgba(14, 165, 233, 0.12);
-  color: var(--accent);
-}
 
 .voice-button {
   background: transparent;
@@ -528,11 +464,7 @@ main {
     font-size: 1rem;
   }
 
-  .duration-panel {
-    width: 100%;
-    right: auto;
-    left: 0;
-  }
+
 
   .content-layout {
     flex-direction: column;
@@ -840,128 +772,7 @@ main {
   gap: 1rem;
 }
 
-/* ── Symptom Duration Input styles ────────────────────────────── */
-.duration-panel {
-  background: var(--secondary);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 1.2rem 1.5rem;
-  margin-top: 1rem;
-  box-shadow: var(--shadow);
-  animation: slideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  text-align: left;
-}
 
-.duration-label {
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: var(--text);
-  letter-spacing: 0.5px;
-}
-
-.duration-options {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.duration-radio-label {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: var(--primary);
-  border: 1.5px solid var(--border);
-  border-radius: 12px;
-  padding: 0.6rem 1.2rem;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: all 0.25s ease;
-  user-select: none;
-}
-
-.duration-radio-label:hover {
-  border-color: var(--accent);
-  color: var(--text);
-  background: rgba(14, 165, 233, 0.04);
-}
-
-.duration-radio-label.selected {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: var(--accent-soft);
-  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.1);
-}
-
-.custom-radio-indicator {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  border: 2px solid var(--text-muted);
-  position: relative;
-  transition: all 0.25s ease;
-}
-
-.duration-radio-label:hover .custom-radio-indicator {
-  border-color: var(--accent);
-}
-
-.duration-radio-label.selected .custom-radio-indicator {
-  border-color: var(--accent);
-  background: #fff;
-}
-
-.duration-radio-label.selected .custom-radio-indicator::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--accent);
-}
-
-/* Floating Toast Notification */
-.custom-toast {
-  position: fixed;
-  top: 2rem;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #fff;
-  border-left: 4px solid var(--danger);
-  border-radius: 12px;
-  padding: 1rem 1.5rem;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  z-index: 9999;
-  font-weight: 700;
-  color: var(--text);
-  font-size: 0.95rem;
-  animation: toastSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.custom-toast svg {
-  color: var(--danger);
-}
-
-@keyframes toastSlideIn {
-  from {
-    transform: translate(-50%, -150%);
-    opacity: 0;
-  }
-  to {
-    transform: translate(-50%, 0);
-    opacity: 1;
-  }
-}
 
 @keyframes slideDown {
   from {
@@ -1199,15 +1010,6 @@ main {
     max-height: 400px;
   }
 
-  /* Responsive duration inputs */
-  .duration-options {
-    flex-direction: column;
-    align-items: stretch;
-  }
 
-  .duration-radio-label {
-    width: 100%;
-    justify-content: flex-start;
-  }
 }
 

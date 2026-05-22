@@ -282,8 +282,7 @@ def predict_disease():
         return jsonify({"error": "Please provide 'symptoms' in the request body"}), 400
     user_input = data['symptoms']
     top_n = data.get('limit', 3)
-    duration = data.get('duration')
-    results = predictor.predict(user_input, top_n=top_n, symptom_duration=duration)
+    results = predictor.predict(user_input, top_n=top_n)
     return jsonify(make_language_safe_recursive(results))
 
 @app.route('/disease-details', methods=['GET'])
