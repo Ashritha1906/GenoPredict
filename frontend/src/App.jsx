@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, lazy, Suspense } from 'react'
 import { Routes, Route, useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { 
@@ -30,14 +30,19 @@ import {
 } from 'lucide-react'
 import { jsPDF } from 'jspdf'
 import AnatomyVisualization from './AnatomyVisualization'
-import DiseaseDetailsPage from './DiseaseDetailsPage'
+
 import AIAssistant from './AIAssistant'
-import PrevalenceMap from './PrevalenceMap'
+
 import DiseaseComparison from './DiseaseComparison'
 import DiseaseBrowser from './DiseaseBrowser'
 import './App.css'
 
 // ─── localStorage helpers ───────────────────────────────────────────────────
+
+// Lazy-load heavy pages so they don't block the initial bundle
+const DiseaseDetailsPage = lazy(() => import('./DiseaseDetailsPage'))
+const PrevalenceMap = lazy(() => import('./PrevalenceMap'))
+
 const HISTORY_KEY = 'geno_history';
 
 function loadHistory() {
@@ -57,12 +62,12 @@ function saveHistory(symptoms, results) {
 function App() {
   const navigate   = useNavigate()
   const [query,   setQuery]   = useState('')
+  const [symptomDuration, setSymptomDuration] = useState('')
   const [loading, setLoading] = useState(false)
   const [results, setResults] = useState(null)
   const [error,   setError]   = useState(null)
 
-  // Symptom duration state (Frontend Only)
-  const [selectedDuration, setSelectedDuration] = useState('')
+  // Symptom duration panel visibility state
   const [showDurationPanel, setShowDurationPanel] = useState(false)
   const [toast, setToast] = useState(null)
 
@@ -78,14 +83,14 @@ function App() {
     if (!query.trim()) return
 
     // Symptom duration validation
-    if (!selectedDuration) {
+    if (!symptomDuration) {
       showToast("Please select the duration for better prediction")
       return
     }
 
     setLoading(true); setError(null); setResults(null)
     try {
-      const response = await axios.post('http://localhost:5000/predict', { symptoms: query })
+      const response = await axios.post('http://localhost:5000/predict', { symptoms: query, duration: symptomDuration, limit: 3 })
       if (response.data.error || response.data.message) {
         setError(response.data.error || response.data.message)
       } else {
@@ -121,25 +126,32 @@ function App() {
       </header>
 
       <main className="main-container">
-        <Routes>
-          <Route path="/" element={
-            <Dashboard
-              query={query} setQuery={setQuery}
-              handleSearch={handleSearch}
-              loading={loading} error={error}
-              results={results} setResults={setResults}
-              navigate={navigate}
-              selectedDuration={selectedDuration}
-              setSelectedDuration={setSelectedDuration}
-              showDurationPanel={showDurationPanel}
-              setShowDurationPanel={setShowDurationPanel}
-            />
-          } />
-          <Route path="/more-details/:diseaseName" element={<DiseaseDetailsPage />} />
-          <Route path="/prevalence-map/:diseaseName" element={<PrevalenceMap />} />
-          <Route path="/compare" element={<DiseaseComparison />} />
-          <Route path="/browse" element={<DiseaseBrowser />} />
-        </Routes>
+        <Suspense fallback={
+          <div style={{ textAlign: 'center', padding: '6rem', color: 'var(--text-muted)' }}>
+            <div className="spinner" style={{ width: 48, height: 48, border: '4px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', margin: '0 auto 1rem', animation: 'spin 1s linear infinite' }} />
+            <p>Loading page...</p>
+          </div>
+        }>
+          <Routes>
+            <Route path="/" element={
+              <Dashboard
+                query={query} setQuery={setQuery}
+                handleSearch={handleSearch}
+                loading={loading} error={error}
+                results={results} setResults={setResults}
+                navigate={navigate}
+                symptomDuration={symptomDuration}
+                setSymptomDuration={setSymptomDuration}
+                showDurationPanel={showDurationPanel}
+                setShowDurationPanel={setShowDurationPanel}
+              />
+            } />
+            <Route path="/more-details/:diseaseName" element={<DiseaseDetailsPage />} />
+            <Route path="/prevalence-map/:diseaseName" element={<PrevalenceMap />} />
+            <Route path="/compare" element={<DiseaseComparison />} />
+            <Route path="/browse" element={<DiseaseBrowser />} />
+          </Routes>
+        </Suspense>
       </main>
 
       <footer style={{ padding: '4rem 2rem', borderTop: '1px solid var(--border)', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
@@ -191,10 +203,15 @@ const RenderDiseaseCard = ({ result, isTop = false, index = 0, navigate, selecte
     doc.setFont("helvetica", "normal");
     doc.text(result.disease || "N/A", 20, 55);
 
+    doc.setTextColor(120);
+    doc.setFontSize(10);
+    doc.text("This report is AI-generated and intended for informational purposes only.", 20, 65);
+    doc.setTextColor(0);
+
     doc.setFont("helvetica", "bold");
-    doc.text("Confidence Score:", 20, 70);
+    doc.text("Confidence Score:", 20, 80);
     doc.setFont("helvetica", "normal");
-    doc.text(`${result.confidence_score}%`, 20, 80);
+    doc.text(`${result.confidence_score}%`, 20, 90);
 
     doc.setFont("helvetica", "bold");
     doc.text("Affected Organ:", 20, 95);
@@ -254,6 +271,7 @@ const RenderDiseaseCard = ({ result, isTop = false, index = 0, navigate, selecte
   return (
     <div className={`disease-main-card ${isTop ? 'top-result' : ''} ${isSelected ? 'selected-for-compare' : ''}`} style={{ position: 'relative' }}>
       {isTop && <div className="top-badge">Top Match</div>}
+      <p className="result-tagline">There is a possibility of {result.disease} based on symptoms.</p>
 
       {/* Compare selection button */}
       {onToggleSelection && (
@@ -460,12 +478,15 @@ const RenderDiseaseCard = ({ result, isTop = false, index = 0, navigate, selecte
 // ─── Dashboard ───────────────────────────────────────────────────────────────
 const Dashboard = ({ 
   query, setQuery, handleSearch, loading, error, results, setResults, navigate,
-  selectedDuration, setSelectedDuration, showDurationPanel, setShowDurationPanel
+  symptomDuration, setSymptomDuration, showDurationPanel, setShowDurationPanel
 }) => {
   const inputRef = useRef(null);
+  const dropdownRef = useRef(null);
   const [isListening, setIsListening] = useState(false);
   const [selectedDiseases, setSelectedDiseases] = useState([]);
-  const [history, setHistory]                   = useState([]);
+  const [history, setHistory] = useState([]);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
 
   // Load history from localStorage on mount and whenever results change
   useEffect(() => { setHistory(loadHistory()); }, [results]);
@@ -540,6 +561,33 @@ const Dashboard = ({
     recognition.start();
   };
 
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (dropdownOpen && dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [dropdownOpen]);
+
+  const durationOptions = [
+    '1-2 days',
+    '3-5 days',
+    'More than 5 days'
+  ];
+
+  const handleDurationClick = (value) => {
+    setSymptomDuration(value);
+    setDropdownOpen(false);
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    handleSearch(e);
+  };
+
   return (
     <>
       {/* Hero */}
@@ -550,7 +598,7 @@ const Dashboard = ({
 
       {/* Search box */}
       <div className="search-container">
-        <form onSubmit={handleSearch}>
+        <form onSubmit={handleSubmit}>
           <div className="search-box">
             <Search className="search-icon" size={24} color="var(--text-muted)" />
             <input
@@ -562,12 +610,11 @@ const Dashboard = ({
               onChange={(e) => setQuery(e.target.value)}
               autoFocus
             />
-            
             {/* Toggle Button for Symptom Duration */}
             <button
               type="button"
               onClick={() => setShowDurationPanel(!showDurationPanel)}
-              className={`duration-toggle-btn ${showDurationPanel ? 'active' : ''} ${selectedDuration ? 'has-value' : ''}`}
+              className={`duration-toggle-btn ${showDurationPanel ? 'active' : ''} ${symptomDuration ? 'has-value' : ''}`}
               style={{
                 background: 'transparent',
                 border: 'none',
@@ -577,7 +624,7 @@ const Dashboard = ({
                 justifyContent: 'center',
                 padding: '0 10px',
                 marginRight: '5px',
-                color: selectedDuration ? 'var(--accent)' : 'var(--text-muted)',
+                color: symptomDuration ? 'var(--accent)' : 'var(--text-muted)',
                 transition: 'transform 0.3s ease, color 0.3s ease',
                 transform: showDurationPanel ? 'rotate(180deg)' : 'none'
               }}
@@ -585,27 +632,15 @@ const Dashboard = ({
             >
               <ChevronDown size={24} />
             </button>
-
             <button 
               type="button" 
               onClick={startListening} 
-              style={{ 
-                background: 'transparent', 
-                border: 'none', 
-                cursor: 'pointer', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center', 
-                padding: '0 10px',
-                marginRight: '10px',
-                color: isListening ? '#ef4444' : 'var(--text-muted)',
-                animation: isListening ? 'pulse 1.5s infinite' : 'none'
-              }}
+              className="voice-button"
               title="Speak Symptoms"
             >
               {isListening ? <MicOff size={24} /> : <Mic size={24} />}
             </button>
-            <button type="submit" className="search-btn" disabled={loading} style={{ fontSize: '1.1rem' }}>
+            <button type="submit" className="search-btn" disabled={loading}>
               {loading ? 'Analyzing...' : 'Analyze'}
             </button>
           </div>
@@ -640,6 +675,7 @@ const Dashboard = ({
             </div>
           )}
         </form>
+        {toastMessage && <div className="toast-message">{toastMessage}</div>}
 
         {/* ── Patient History ─────────────────────────────────────────────── */}
         <div style={{ marginTop: '1.5rem', width: '100%', maxWidth: '800px', marginInline: 'auto' }}>
@@ -732,7 +768,8 @@ const Dashboard = ({
 
       {/* Results */}
       {results && (Array.isArray(results) ? results.length > 0 : Object.keys(results).length > 0) && (
-        <div className="content-layout" style={{ position: 'relative' }}>
+        <>
+          <div className="content-layout" style={{ position: 'relative' }}>
 
           {/* ── Floating Compare Bar ────────────────────────────────────────── */}
           {selectedDiseases.length > 0 && (
@@ -785,6 +822,7 @@ const Dashboard = ({
             />
           </div>
         </div>
+        </>
       )}
 
       {/* No results */}

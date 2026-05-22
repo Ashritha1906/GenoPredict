@@ -3,22 +3,19 @@ from flask_cors import CORS
 from ml_model import DiseasePredictor
 from database import DatabaseManager
 import os
+import re
 import requests
 import json
 from groq import Groq
 from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv(override=True)
+# Load environment variables from backend/.env
+load_dotenv(os.path.join(os.path.dirname(__file__), '.env'), override=True)
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 NCBI_API_KEY = os.getenv("NCBI_API_KEY")
 
-if GROQ_API_KEY:
-    masked_key = f"{GROQ_API_KEY[:4]}...{GROQ_API_KEY[-4:]}"
-    print(f"DEBUG: GROQ_API_KEY loaded: {masked_key}")
-else:
-    print("DEBUG: GROQ_API_KEY is missing.")
+print(f"DEBUG: GROQ_API_KEY present: {'Yes' if GROQ_API_KEY else 'No'}")
 
 # Initialize Groq Client
 client = None
@@ -32,9 +29,10 @@ if GROQ_API_KEY:
 if not GROQ_API_KEY:
     print("CRITICAL: No Groq API Key found in .env file. AI Assistant will be unavailable.")
 
-BASE_INSTRUCTIONS = (
-    "Provide the direct, correct answer to the user's question. "
-    "Do NOT give lengthy or detailed explanations. Keep your answers extremely concise, short, and to the point (maximum 1-3 sentences). "
+SYSTEM_PROMPT = (
+    "You are a medical assistant for a bioinformatics project. "
+    "Give clear, short, and accurate explanations about diseases. "
+    "Avoid complex jargon. Answer in 2–4 lines maximum. "
     "If discussing a potential condition, never state that the user has the disease (do not say 'You have [disease]' or 'You suffer from [disease]'). "
     "Instead, use non-alarming phrasing like 'There is a possibility of [disease] based on symptoms'. "
     "Do NOT include disclaimer phrases like 'not a confirmed diagnosis' or 'this is not a medical diagnosis'."
@@ -82,8 +80,160 @@ def make_language_safe_recursive(data):
         return make_language_safe(data)
     return data
 
+def normalize_text(value):
+    return str(value or '').strip()
+
+def extract_disease_name(question):
+    text = normalize_text(question).lower()
+    if text.startswith("what is "):
+        candidate = text[8:]
+    elif text.startswith("what's "):
+        candidate = text[7:]
+    elif text.startswith("is "):
+        for token in [" serious", " dangerous", " risky", " life-threatening", " life threatening", " common?"]:
+            if token in text:
+                candidate = text[3:text.index(token)]
+                break
+        else:
+            candidate = ''
+    else:
+        candidate = ''
+    return normalize_text(candidate).rstrip('?.').title()
+
+def get_disease_details_if_available(name):
+    if not name:
+        return None
+    details = predictor.get_disease_details(name)
+    if isinstance(details, dict) and details.get('error'):
+        return None
+    return details
+
+def parse_groq_response(response):
+    if response is None:
+        return None
+
+    if isinstance(response, dict):
+        if response.get('response'):
+            return response.get('response')
+        if response.get('output_text'):
+            return response.get('output_text')
+        choices = response.get('choices')
+        if isinstance(choices, list) and choices:
+            first = choices[0]
+            if isinstance(first, dict):
+                message = first.get('message') or first
+                if isinstance(message, dict):
+                    return message.get('content') or message.get('text')
+                return message
+
+    if hasattr(response, 'output_text'):
+        return getattr(response, 'output_text')
+
+    if hasattr(response, 'choices') and response.choices:
+        choice = response.choices[0]
+        if hasattr(choice, 'message'):
+            message = choice.message
+            if isinstance(message, dict):
+                return message.get('content') or message.get('text')
+            return getattr(message, 'content', None) or getattr(message, 'text', None)
+        return getattr(choice, 'text', None) or getattr(choice, 'content', None)
+
+    if hasattr(response, 'output'):
+        output = getattr(response, 'output')
+        if isinstance(output, list) and len(output) > 0:
+            first = output[0]
+            if isinstance(first, dict):
+                content = first.get('content')
+                if isinstance(content, list) and len(content) > 0:
+                    item = content[0]
+                    if isinstance(item, dict):
+                        return item.get('text')
+                    return item
+
+    return None
+
+def call_groq_chat(user_message, disease_context):
+    if not client:
+        raise RuntimeError('Groq client not initialized')
+
+    prompt = normalize_text(user_message)
+    if not prompt:
+        raise ValueError('Empty user message')
+
+    if hasattr(client, 'chat'):
+        return client.chat.completions.create(
+            model='llama3-8b-8192',
+            messages=[
+                {'role': 'system', 'content': SYSTEM_PROMPT},
+                {'role': 'user', 'content': prompt}
+            ],
+            max_tokens=180,
+            temperature=0.7,
+            timeout=20
+        )
+
+    if hasattr(client, 'responses'):
+        return client.responses.create(
+            model='llama3-8b-8192',
+            input=prompt,
+            max_output_tokens=180,
+            temperature=0.7,
+            timeout=20
+        )
+
+    raise RuntimeError('Groq client does not expose chat or responses API')
+
+def generate_local_chat_response(user_message, disease_context):
+    text = normalize_text(user_message)
+    lower = text.lower()
+    disease_name = extract_disease_name(text)
+    has_context = normalize_text(disease_context) and disease_context.lower() != 'general medical query'
+    context_disease = disease_name or (normalize_text(disease_context) if has_context else None)
+
+    if context_disease:
+        details = get_disease_details_if_available(context_disease)
+        if details:
+            description = normalize_text(details.get('description', 'Description not available.'))
+            causes = normalize_text(details.get('causes', ''))
+            prevention = normalize_text(details.get('prevention', ''))
+            progression = details.get('progression') or {}
+            if lower.startswith('what is') or 'about' in lower:
+                return f'{context_disease} is a medical condition. {description}'
+            if any(k in lower for k in ['serious', 'dangerous', 'risk', 'severity', 'life-threatening']):
+                severity = normalize_text(progression.get('early', '') if isinstance(progression, dict) else '') or causes or description
+                return f'{context_disease} can vary in severity. {severity or "Consult a healthcare professional for an accurate assessment."}'
+            if any(k in lower for k in ['symptom', 'sign', 'manifest', 'feature']):
+                symptom_text = predictor.symptom_mapping.get(context_disease.lower(), '') if hasattr(predictor, 'symptom_mapping') else ''
+                if symptom_text:
+                    return f'Common symptoms for {context_disease} include {symptom_text}. Please consult a healthcare professional for confirmation.'
+                return f'Symptoms for {context_disease} vary. Please seek medical guidance.'
+            if any(k in lower for k in ['treatment', 'manage', 'care', 'recover']):
+                return f'Treatment for {context_disease} depends on the condition. {prevention or description or "Consult a physician for proper guidance."}'
+            return description or f'I have data on {context_disease}, but please ask a more specific question.'
+
+    general_map = {
+        'what is dna': 'DNA is the genetic material that stores instructions for life. It is made of nucleotides arranged in a double helix.',
+        'what is gene': 'A gene is a segment of DNA that contains instructions for building a specific protein or function in the body.',
+        'what is genome': 'The genome is the full set of genetic material in an organism, including all its genes and non-coding sequences.',
+        'what is mutation': 'A mutation is a change in DNA sequence, and it can affect how genes work; some are harmless while others can cause disease.',
+        'what is blood': 'Blood carries oxygen, nutrients, and immune cells through the body, supporting every organ and tissue.',
+        'what is symptom': 'A symptom is a sign or sensation that indicates a person may have a medical condition.',
+        'what is a disease': 'A disease is a condition that affects normal body function, often causing symptoms and requiring treatment.'
+    }
+
+    for key, value in general_map.items():
+        if key in lower:
+            return value
+
+    if 'what is' in lower or 'tell me about' in lower or 'define' in lower:
+        return 'I can answer medical and genomic questions. Please specify a disease or genetic term for a more detailed response.'
+
+    return 'AI assistant is currently unavailable. Please try again.'
+
 app = Flask(__name__, template_folder='templates', static_folder='static')
 CORS(app)
+
+
 
 # Initialize ML Model
 DATA_FILE = os.path.join(os.path.dirname(__file__), "..", "final_genomic_dataset.csv")
@@ -106,6 +256,17 @@ if os.path.exists(NCBI_DATA_PATH):
 else:
     print(f"Warning: Local NCBI dataset not found at {NCBI_DATA_PATH}. Run generate_json.py first.")
 
+def deduplicate(records, keys):
+    """Remove duplicate dicts from a list based on the given key fields."""
+    seen = set()
+    result = []
+    for r in records:
+        sig = tuple(str(r.get(k, '')).strip().lower() for k in keys)
+        if sig not in seen:
+            seen.add(sig)
+            result.append(r)
+    return result
+
 @app.route('/', methods=['GET'])
 def health_check():
     return jsonify({
@@ -120,9 +281,9 @@ def predict_disease():
     if not data or 'symptoms' not in data:
         return jsonify({"error": "Please provide 'symptoms' in the request body"}), 400
     user_input = data['symptoms']
-    print(f"Prediction request: {user_input}")
     top_n = data.get('limit', 3)
-    results = predictor.predict(user_input, top_n=top_n)
+    duration = data.get('duration')
+    results = predictor.predict(user_input, top_n=top_n, symptom_duration=duration)
     return jsonify(make_language_safe_recursive(results))
 
 @app.route('/disease-details', methods=['GET'])
@@ -147,18 +308,6 @@ def get_disease():
     if details:
         return jsonify(make_language_safe_recursive(details))
     return jsonify({"error": "Disease not found"}), 404
-
-def deduplicate(records, keys):
-    """Remove duplicate dicts from a list based on the given key fields."""
-    seen = set()
-    result = []
-    for r in records:
-        # Build a hashable signature from the specified keys
-        sig = tuple(str(r.get(k, '')).strip().lower() for k in keys)
-        if sig not in seen:
-            seen.add(sig)
-            result.append(r)
-    return result
 
 @app.route('/more-details', methods=['GET'])
 def more_details():
@@ -284,59 +433,37 @@ def generate_fallback_response(user_message, disease_context):
 def chat():
     data = request.json
     if not data or 'message' not in data:
-        return jsonify({"error": "Message is required"}), 400
+        return jsonify({
+            "response": "AI response not available. Please try again.",
+            "error": "Message is required"
+        }), 400
 
-    user_message = data['message']
-    disease_context = data.get('context', 'General medical query')
-    
-    print(f"Chat request: {user_message}")
-    print(f"DEBUG: Chat request received: '{user_message[:50]}...'")
-    
-    import re
-    msg_lower = user_message.lower()
-    
-    is_vague = bool(re.search(r'\b(this disease|the disease|this prediction|prediction|it|symptoms)\b', msg_lower))
-    has_context = disease_context and disease_context != 'General medical query'
-    mentions_context = has_context and disease_context.lower() in msg_lower
+    user_message = normalize_text(data['message'])
+    print(f"DEBUG: User message: '{user_message[:200]}'")
 
-    if is_vague and not mentions_context and has_context:
-        dynamic_system_prompt = f"You are a medical assistant. Answer based on this disease: {disease_context}. {BASE_INSTRUCTIONS}"
-    else:
-        dynamic_system_prompt = f"You are a helpful scientific assistant. {BASE_INSTRUCTIONS}"
+    if not user_message:
+        return jsonify({
+            "response": "AI response not available. Please try again.",
+            "error": "Empty message"
+        }), 400
 
-    if client:
-        try:
-            print("DEBUG: Attempting Groq API...")
-            response = client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
-                messages=[
-                    {"role": "system", "content": dynamic_system_prompt},
-                    {"role": "user", "content": user_message}
-                ]
-            )
-            ai_response = response.choices[0].message.content
-            
-            if not ai_response:
-                ai_response = "AI response not available"
-            
-            print("User:", user_message)
-            print("AI:", ai_response)
-            
-            print(f"DEBUG: Groq Success. Response length: {len(ai_response)}")
-            return jsonify(make_language_safe_recursive({"response": ai_response}))
-        except Exception as e:
-            print("Groq Error:", e)
-            print("Using local fallback response generator due to Groq error.")
-            fallback_resp = generate_fallback_response(user_message, disease_context)
-            return jsonify(make_language_safe_recursive({"response": fallback_resp})), 200
+    try:
+        print("DEBUG: Attempting Groq API...")
+        response = call_groq_chat(user_message, '')
+        print("DEBUG: Raw Groq response:", response)
+        ai_response = parse_groq_response(response)
 
-    print("Using local fallback response generator because Groq client is not initialized.")
-    fallback_resp = generate_fallback_response(user_message, disease_context)
-    return jsonify(make_language_safe_recursive({"response": fallback_resp})), 200
+        if not ai_response or not str(ai_response).strip():
+            raise ValueError('No valid response returned from Groq API')
+
+        ai_response = str(ai_response).strip()
+        print(f"DEBUG: AI response: {ai_response[:300]}")
+        return jsonify(make_language_safe_recursive({"response": ai_response}))
+    except Exception as e:
+        print(f"ERROR: Groq API call failed: {str(e)}")
+        local_reply = generate_local_chat_response(user_message, '')
+        print(f"DEBUG: Local fallback response: {local_reply}")
+        return jsonify(make_language_safe_recursive({"response": local_reply, "error": str(e)})), 200
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
-
-
-
 
