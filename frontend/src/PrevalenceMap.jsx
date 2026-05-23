@@ -115,7 +115,6 @@ const PrevalenceMap = () => {
       <header className="header">
         <div className="logo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
           <MapIcon size={28} />
-          <span>GenoPredict Map Insights</span>
         </div>
       </header>
 
