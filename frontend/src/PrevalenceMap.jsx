@@ -117,9 +117,6 @@ const PrevalenceMap = () => {
           <MapIcon size={28} />
           <span>GenoPredict Map Insights</span>
         </div>
-        <button onClick={() => window.close()} className="search-btn" style={{ background: 'transparent', color: 'var(--text)', border: '1px solid var(--border)' }}>
-          Close Tab
-        </button>
       </header>
 
       <main className="main-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
